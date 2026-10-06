@@ -11,9 +11,12 @@ from app.routers import (
     documents,
     exports,
     finance,
+    issues,
+    meetings,
     packages,
     progress,
     project,
+    risks,
     users,
 )
 from app.services.storage import Storage
@@ -54,6 +57,9 @@ def create_app(storage: Storage | None = None) -> FastAPI:
     api.include_router(checklists.router)
     api.include_router(progress.router)
     api.include_router(exports.router)
+    api.include_router(risks.router)
+    api.include_router(issues.router)
+    api.include_router(meetings.router)
     app.include_router(api)
     return app
 
