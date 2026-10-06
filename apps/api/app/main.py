@@ -19,6 +19,7 @@ from app.routers import (
     progress,
     project,
     risks,
+    search,
     users,
 )
 from app.services.alert_jobs import WriteRefresh
@@ -86,6 +87,7 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
     api.include_router(meetings.router)
     api.include_router(alerts.router)
     api.include_router(dashboard.router)
+    api.include_router(search.router)
     app.include_router(api)
     return app
 

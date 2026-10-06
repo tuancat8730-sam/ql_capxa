@@ -567,6 +567,14 @@ export const vi = {
     documents: { title: 'Hồ sơ còn thiếu', missing: 'Thiếu {{missing}}/{{required}}', none: 'Không thiếu hồ sơ bắt buộc', total: 'Tổng cộng thiếu {{n}} hạng mục' },
     timeline: { title: 'Đường găng đơn giản', today: 'Hôm nay', open: 'Mở tiến độ' },
   },
+  search: {
+    open: 'Tìm kiếm',
+    placeholder: 'Tìm gói thầu, hợp đồng, tài liệu, rủi ro, vướng mắc',
+    hint: 'Nhập ít nhất 2 ký tự (không cần gõ dấu). Phím tắt: Ctrl+K',
+    none: 'Không tìm thấy kết quả nào',
+    more: 'và {{n}} kết quả khác',
+    kinds: { package: 'Gói thầu', contract: 'Hợp đồng', document: 'Tài liệu', risk: 'Rủi ro', issue: 'Vướng mắc' },
+  },
   common: {
     loading: 'Đang tải…',
     empty: 'Chưa có dữ liệu',

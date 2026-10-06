@@ -2,6 +2,7 @@ import { MoreHorizontal, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
+import { GlobalSearch } from '@/features/search/GlobalSearch'
 import { useAlertBadge } from '@/features/alerts/useAlertCount'
 import { startAutoSync } from '@/lib/offline'
 import { OfflineBanner } from './OfflineBanner'
@@ -120,6 +121,9 @@ export function AppShell() {
       </aside>
 
       <main className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-8">
+        <div className="mb-3 flex justify-end">
+          <GlobalSearch />
+        </div>
         <OfflineBanner />
         <Outlet />
       </main>
