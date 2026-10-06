@@ -10,7 +10,7 @@ from collections.abc import AsyncIterator  # noqa: E402
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
-from sqlalchemy import text  # noqa: E402
+from sqlalchemy import select, text  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine  # noqa: E402
 
 import app.models  # noqa: E402, F401  (register tables)
@@ -19,6 +19,7 @@ from app.core.security import hash_password  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.models import Base, User  # noqa: E402
 from app.models.user import ROLES  # noqa: E402
+from app.services.storage import MemoryStorage  # noqa: E402
 
 PASSWORD = "Str0ng-Passw0rd!"
 
@@ -27,6 +28,8 @@ PASSWORD = "Str0ng-Passw0rd!"
 async def _schema() -> AsyncIterator[None]:
     engine = create_async_engine(get_settings().database_url)
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS pg_trgm"))
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS unaccent"))
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     await engine.dispose()
@@ -56,8 +59,13 @@ async def session() -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-async def client() -> AsyncIterator[httpx.AsyncClient]:
-    transport = httpx.ASGITransport(app=create_app())
+def storage() -> MemoryStorage:
+    return MemoryStorage()
+
+
+@pytest.fixture
+async def client(storage: MemoryStorage) -> AsyncIterator[httpx.AsyncClient]:
+    transport = httpx.ASGITransport(app=create_app(storage=storage))
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
 
@@ -88,12 +96,16 @@ async def login(client: httpx.AsyncClient, email: str, password: str = PASSWORD)
 
 
 @pytest.fixture
-def make_client_for():
+def make_client_for(storage: MemoryStorage):
     """Factory: returns an authenticated client for the given role."""
 
     async def _make(session: AsyncSession, role: str) -> httpx.AsyncClient:
-        await make_user(session, role)
-        transport = httpx.ASGITransport(app=create_app())
+        exists = (
+            await session.execute(select(User.id).where(User.email == f"{role}@example.test"))
+        ).first()
+        if not exists:
+            await make_user(session, role)
+        transport = httpx.ASGITransport(app=create_app(storage=storage))
         c = httpx.AsyncClient(transport=transport, base_url="http://test")
         resp = await login(c, f"{role}@example.test")
         assert resp.status_code == 200, resp.text

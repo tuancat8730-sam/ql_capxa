@@ -37,6 +37,11 @@ MATRIX: dict[str, dict[str, str]] = {
 }
 
 
+def needs_assignment(role: str, resource: str) -> bool:
+    """True for "S" grants: the role may act only on packages assigned via `package_access`."""
+    return MATRIX.get(resource, {}).get(role) == "S"
+
+
 def can(role: str, resource: str, needed: Level) -> bool:
     grant = MATRIX.get(resource, {}).get(role)
     return grant is not None and _GRANT_RANK[grant] >= _RANK[needed]

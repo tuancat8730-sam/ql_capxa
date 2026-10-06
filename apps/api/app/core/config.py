@@ -13,6 +13,14 @@ class Settings(BaseSettings):
     cookie_secure: bool = True
     s3_bucket: str = "qlda-documents"
     s3_endpoint_url: str | None = None
+    # Browser-reachable S3 address used in presigned URLs (MinIO runs behind another hostname
+    # inside Docker). Falls back to `s3_endpoint_url`.
+    s3_public_endpoint_url: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: str | None = None
+    max_upload_bytes: int = 100 * 1024 * 1024  # SPEC section 9: 100 MB
+    upload_url_ttl_seconds: int = 600
+    download_url_ttl_seconds: int = 300
     aws_region: str = "ap-southeast-1"
     ses_sender: str = "no-reply@example.test"
     cors_origins: str = "http://localhost:5173"

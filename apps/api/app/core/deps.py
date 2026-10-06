@@ -4,19 +4,32 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import AppError
 from app.core.rbac import Level, can
 from app.core.security import decode_token
 from app.models import User
+from app.services.storage import S3Storage, Storage
 
 _bearer = HTTPBearer(auto_error=False)
 
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
+
+
+async def get_storage(request: Request) -> Storage:
+    """App-wide object storage; tests inject `MemoryStorage` through `create_app(storage=...)`."""
+    storage: Storage | None = request.app.state.storage
+    if storage is None:
+        storage = request.app.state.storage = S3Storage.from_settings(get_settings())
+    return storage
+
+
+StorageDep = Annotated[Storage, Depends(get_storage)]
 
 
 async def _authenticate(
