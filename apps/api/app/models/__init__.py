@@ -1,5 +1,21 @@
 from app.models.audit import AuditLog
 from app.models.base import Base, IdMixin, SoftDeleteMixin, TimestampMixin
+from app.models.contract import Contract, ContractAmendment, ContractItem, ContractParty
+from app.models.project import Organization, Package, Project
 from app.models.user import User
 
-__all__ = ["AuditLog", "Base", "IdMixin", "SoftDeleteMixin", "TimestampMixin", "User"]
+__all__ = [
+    "AuditLog",
+    "Base",
+    "Contract",
+    "ContractAmendment",
+    "ContractItem",
+    "ContractParty",
+    "IdMixin",
+    "Organization",
+    "Package",
+    "Project",
+    "SoftDeleteMixin",
+    "TimestampMixin",
+    "User",
+]

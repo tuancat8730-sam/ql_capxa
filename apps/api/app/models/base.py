@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import CheckConstraint, DateTime, MetaData, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -14,6 +14,12 @@ NAMING_CONVENTION = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
     "pk": "pk_%(table_name)s",
 }
+
+
+def enum_check(column: str, values: tuple[str, ...]) -> CheckConstraint:
+    """Enums are stored as text with a CHECK (SPEC section 3). NULL stays allowed."""
+    allowed = ",".join(f"'{v}'" for v in values)
+    return CheckConstraint(f"{column} IN ({allowed})", name=column)
 
 
 class Base(DeclarativeBase):

@@ -1,6 +1,9 @@
 """Audit trail writer (SPEC 4.18). Callers commit; audit rows ride the caller's transaction."""
 
 import uuid
+from collections.abc import Iterable
+from datetime import date, datetime
+from decimal import Decimal
 from typing import Any
 
 from fastapi import Request
@@ -11,17 +14,36 @@ from app.models import AuditLog
 _SECRET_KEYS = ("password", "token", "secret", "hash")
 
 
+def json_safe(value: Any) -> Any:
+    """Make a column value storable in the JSONB `changes` column."""
+    if isinstance(value, Decimal):
+        return format(value, "f")  # plain digits, never 5.15E+10
+    if isinstance(value, date | datetime):
+        return value.isoformat()
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    return value
+
+
 def scrub(data: dict[str, Any] | None) -> dict[str, Any] | None:
     """Drop any key that could carry a credential before it is persisted."""
     if data is None:
         return None
-    return {k: v for k, v in data.items() if not any(s in k.lower() for s in _SECRET_KEYS)}
+    return {
+        k: json_safe(v) for k, v in data.items() if not any(s in k.lower() for s in _SECRET_KEYS)
+    }
 
 
 def diff(before: dict[str, Any], after: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
-        k: {"before": before.get(k), "after": v} for k, v in after.items() if before.get(k) != v
+        k: {"before": json_safe(before.get(k)), "after": json_safe(v)}
+        for k, v in after.items()
+        if before.get(k) != v
     }
+
+
+def snapshot(obj: object, fields: Iterable[str]) -> dict[str, Any]:
+    return {f: getattr(obj, f) for f in fields}
 
 
 def record(
