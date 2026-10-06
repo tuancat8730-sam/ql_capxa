@@ -6,6 +6,7 @@ import os
 from app.core.db import get_engine, get_sessionmaker
 from app.seed.checklists import seed_checklists
 from app.seed.finance import seed_finance
+from app.seed.progress import seed_progress
 from app.seed.project import seed_project
 from app.seed.users import ensure_admin
 
@@ -23,7 +24,8 @@ async def main() -> None:
         await seed_project(session)
         await seed_finance(session)
         await seed_checklists(session)
-    print("Seeded project, packages, contracts, guarantees, payments and checklists (idempotent)")
+        await seed_progress(session)
+    print("Seeded project, packages, contracts, finance, checklists and stages (idempotent)")
     await get_engine().dispose()
 
 

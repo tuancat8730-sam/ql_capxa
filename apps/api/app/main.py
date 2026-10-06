@@ -9,8 +9,10 @@ from app.routers import (
     checklists,
     contracts,
     documents,
+    exports,
     finance,
     packages,
+    progress,
     project,
     users,
 )
@@ -50,6 +52,8 @@ def create_app(storage: Storage | None = None) -> FastAPI:
     api.include_router(finance.router)
     api.include_router(documents.router)
     api.include_router(checklists.router)
+    api.include_router(progress.router)
+    api.include_router(exports.router)
     app.include_router(api)
     return app
 
