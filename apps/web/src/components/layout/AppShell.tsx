@@ -1,7 +1,9 @@
 import { MoreHorizontal, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
+import { startAutoSync } from '@/lib/offline'
+import { OfflineBanner } from './OfflineBanner'
 import { moreNav, type NavItem, primaryNav, sidebarNav } from './nav'
 
 const touchTarget = 'min-h-11 min-w-11'
@@ -74,6 +76,9 @@ export function AppShell() {
   const { t } = useTranslation()
   const [moreOpen, setMoreOpen] = useState(false)
 
+  // Send queued daily logs on start, when the network returns and periodically (SPEC 15.7).
+  useEffect(() => startAutoSync(), [])
+
   return (
     <div className="min-h-dvh md:pl-16 lg:pl-60">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col border-r border-border bg-background md:flex lg:w-60">
@@ -108,6 +113,7 @@ export function AppShell() {
       </aside>
 
       <main className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-8">
+        <OfflineBanner />
         <Outlet />
       </main>
 

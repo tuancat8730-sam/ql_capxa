@@ -44,8 +44,13 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshing
 }
 
-async function send(path: string, method: string, body: unknown): Promise<Response> {
-  const headers: Record<string, string> = {}
+async function send(
+  path: string,
+  method: string,
+  body: unknown,
+  extra: Record<string, string> = {},
+): Promise<Response> {
+  const headers: Record<string, string> = { ...extra }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
   return fetch(`${BASE}${path}`, {
@@ -60,12 +65,12 @@ export async function request<T>(
   method: string,
   path: string,
   body?: unknown,
-  opts: { retryOn401?: boolean } = {},
+  opts: { retryOn401?: boolean; headers?: Record<string, string> } = {},
 ): Promise<T> {
   const retry = opts.retryOn401 ?? true
-  let res = await send(path, method, body)
+  let res = await send(path, method, body, opts.headers)
   if (res.status === 401 && retry && (await refreshAccessToken())) {
-    res = await send(path, method, body)
+    res = await send(path, method, body, opts.headers)
   }
   if (res.status === 401 && retry) onSessionExpired?.()
   if (!res.ok) {
@@ -82,6 +87,17 @@ export async function request<T>(
   }
   if (res.status === 204) return undefined as T
   return (await res.json()) as T
+}
+
+/** Download a binary response (e.g. an .xlsx export) with the current credentials. */
+export async function download(path: string): Promise<{ blob: Blob; filename: string }> {
+  let res = await send(path, 'GET', undefined)
+  if (res.status === 401 && (await refreshAccessToken())) res = await send(path, 'GET', undefined)
+  if (!res.ok) throw new ApiError(res.status, 'download_failed', res.statusText)
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(disposition)
+  const plain = /filename="?([^";]+)"?/i.exec(disposition)
+  return { blob: await res.blob(), filename: utf8 ? decodeURIComponent(utf8[1]) : (plain?.[1] ?? 'download') }
 }
 
 export const api = {

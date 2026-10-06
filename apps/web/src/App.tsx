@@ -14,6 +14,8 @@ const DocumentsPage = lazy(() => import('./features/documents/DocumentsPage').th
 const GuaranteesPage = lazy(() => import('./features/finance/GuaranteesPage').then((m) => ({ default: m.GuaranteesPage })))
 const PaymentsPage = lazy(() => import('./features/finance/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
 const PackageDetailPage = lazy(() => import('./features/packages/PackageDetailPage').then((m) => ({ default: m.PackageDetailPage })))
+const ProgressPage = lazy(() => import('./features/progress/ProgressPage').then((m) => ({ default: m.ProgressPage })))
+const DailyLogPage = lazy(() => import('./features/progress/DailyLogPage').then((m) => ({ default: m.DailyLogPage })))
 const PackagesPage = lazy(() => import('./features/packages/PackagesPage').then((m) => ({ default: m.PackagesPage })))
 
 function PlaceholderPage({ titleKey }: { titleKey: string }) {
@@ -26,7 +28,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents'])
+const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log'])
 
 export default function App() {
   const { t } = useTranslation()
@@ -48,6 +50,8 @@ export default function App() {
           <Route path="/contracts" element={<GuaranteesPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/progress" element={<ProgressPage />} />
+          <Route path="/daily-log" element={<DailyLogPage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="/admin/users" element={<UsersPage />} />
           </Route>

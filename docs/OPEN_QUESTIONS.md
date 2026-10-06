@@ -27,3 +27,8 @@ Ghi theo SPEC mục 0.3: chỗ mơ hồ → chọn phương án mặc định, g
 18. **Hạn của hạng mục checklist** (`due_offset_days`) tính từ ngày hiệu lực hợp đồng (hoặc ngày ký): bảo lãnh thực hiện +7 ngày, bảo lãnh tạm ứng +0. Các hạng mục khác chưa có hạn.
 19. **Chặn trùng tệp**: SPEC 4.6 nói "chặn", mục 9 nói "cảnh báo". Chọn chặn (409) trong cùng gói; tài liệu cấp dự án không bị chặn.
 20. **Giám đốc (director) quản lý quyền xem tài liệu nhạy cảm** qua API, nhưng giao diện chỉ làm cho admin vì danh sách người dùng chỉ admin được gọi.
+
+## Phát sinh ở M5 (tiến độ)
+21. **Dữ liệu giai đoạn ban đầu**: SPEC không nêu ngày kế hoạch của từng giai đoạn. Chỉ nạp những gì suy ra được: gói đã ký hợp đồng thì S2 (lựa chọn nhà thầu) hoàn thành; S3 lấy ngày bắt đầu và kết thúc của hợp đồng. Gói 03 đang `bidding` thì S2 đang thực hiện. S1, S4, S5 để trống. Hệ quả: tiến độ các gói đã ký hiện 20% (S2 × trọng số 20).
+22. **QL-06**: các cột ngày lấy từ ngày văn bản của tài liệu theo loại (QĐ phê duyệt E-HSMT, E-TBMT, biên bản mở thầu, báo cáo đánh giá, QĐ phê duyệt KQLCNT) và ngày ký hợp đồng. Ô "trễ" so với ngày kết thúc kế hoạch của giai đoạn S2. "Số nhà thầu" chưa có nguồn dữ liệu.
+23. **Nhật ký hằng ngày**: thêm hai trường theo mục 15.5d (nhân lực, thời tiết) và `client_id` cho Idempotency-Key; không có trong mục 3.15.
