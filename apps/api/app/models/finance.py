@@ -65,6 +65,8 @@ class Payment(IdMixin, TimestampMixin, Base):
     seq: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     amount: Mapped[Decimal] = mapped_column(_MONEY, nullable=False)
     requested_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    # When the instalment is expected to be paid (drives the PAYMENT_DUE alert).
+    due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     paid_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="planned", nullable=False)
     invoice_no: Mapped[str | None] = mapped_column(String(100), nullable=True)

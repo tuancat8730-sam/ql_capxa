@@ -196,7 +196,12 @@ PACKAGES: tuple[PackageSeed, ...] = (
         6,
         D(1_820_685_517),
         "consulting",
-        {**_SIGNED, "winning_price": D(1_726_920_000), "winning_org_text": "Sài Gòn Mới"},
+        {
+            **_SIGNED,
+            "winning_price": D(1_726_920_000),
+            "winning_org_text": "Sài Gòn Mới",
+            "consulting_role": "tvqlda",
+        },
         ContractSeed(
             "80",
             {
@@ -217,8 +222,28 @@ PACKAGES: tuple[PackageSeed, ...] = (
             (PartySeed("Sài Gòn Mới", "sole"),),
         ),
     ),
-    PackageSeed(7, D(509_634_139), "consulting", dict(_SIGNED), ContractSeed("73", {})),
-    PackageSeed(8, D(720_713_320), "consulting", dict(_SIGNED), ContractSeed("74", {})),
+    PackageSeed(
+        7,
+        D(509_634_139),
+        "consulting",
+        {**_SIGNED, "consulting_role": "tvgs"},
+        ContractSeed(
+            "73",
+            {
+                # SPEC 14.6 (9): the supervision contract ends about 13/12/2026, ahead of the
+                # supply packages. The exact date is still to be confirmed (OPEN_QUESTIONS).
+                "planned_end_date": date(2026, 12, 13),
+                "data_quality_note": "Ngày kết thúc ước tính ~13/12/2026 (SPEC 14.6).",
+            },
+        ),
+    ),
+    PackageSeed(
+        8,
+        D(720_713_320),
+        "consulting",
+        {**_SIGNED, "consulting_role": "other"},
+        ContractSeed("74", {}),
+    ),
 )
 
 
@@ -231,6 +256,13 @@ async def _org(session: AsyncSession, name: str, org_type: str) -> Organization:
         session.add(org)
         await session.flush()
     return org
+
+
+def _backfill(obj: Package | Contract, fields: dict[str, Any]) -> None:
+    """Fill columns added after the first seed; values someone already entered are kept."""
+    for key, value in fields.items():
+        if getattr(obj, key) is None:
+            setattr(obj, key, value)
 
 
 async def seed_project(session: AsyncSession) -> Project:
@@ -264,6 +296,8 @@ async def seed_project(session: AsyncSession) -> Project:
             )
             session.add(package)
             await session.flush()
+        else:
+            _backfill(package, seed.fields)
         if seed.contract is None:
             continue
         contract = (
@@ -285,5 +319,7 @@ async def seed_project(session: AsyncSession) -> Project:
                         share_amount=party.share_amount,
                     )
                 )
+        else:
+            _backfill(contract, seed.contract.fields)
     await session.commit()
     return project

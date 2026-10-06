@@ -79,6 +79,7 @@ class PaymentUpdate(BaseModel):
     seq: int | None = Field(default=None, ge=0, le=999)
     amount: PositiveMoney | None = None
     requested_date: date | None = None
+    due_date: date | None = None
     status: PaymentStatus | None = None
     invoice_no: str | None = Field(default=None, max_length=100)
     treasury_ref: str | None = Field(default=None, max_length=100)
@@ -100,6 +101,7 @@ class PaymentOut(BaseModel):
     seq: int
     amount: Number
     requested_date: date | None
+    due_date: date | None
     paid_date: date | None
     status: PaymentStatus
     invoice_no: str | None

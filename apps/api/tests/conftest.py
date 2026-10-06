@@ -5,6 +5,8 @@ os.environ["DATABASE_URL"] = os.environ.get(
 )
 os.environ["JWT_SECRET"] = "test-secret-test-secret-test-secret"
 os.environ["COOKIE_SECURE"] = "false"  # test client talks plain http
+os.environ["MAIL_BACKEND"] = "memory"
+os.environ["ALERT_REFRESH_ON_WRITE"] = "false"  # tests that want the hook turn it on explicitly
 
 from collections.abc import AsyncIterator  # noqa: E402
 

@@ -23,6 +23,7 @@ StageCode = Literal[
 SelectionForm = Literal["open_tender", "direct_appointment_short"]
 SelectionMethod = Literal["one_stage_one_envelope", "one_stage_two_envelope", "short_procedure"]
 Health = Literal["green", "amber", "red", "grey"]
+ConsultingRole = Literal["tvqlda", "tvgs", "other"]
 
 
 class ProjectOut(BaseModel):
@@ -72,6 +73,7 @@ class PackageUpdate(BaseModel):
     winning_org_text: str | None = None
     current_stage: StageCode | None = None
     status: PackageStatus | None = None
+    consulting_role: ConsultingRole | None = None
     notes: str | None = None
 
 
@@ -99,6 +101,7 @@ class PackageOut(BaseModel):
     health: Health
     health_reason: str | None
     is_sensitive: bool
+    consulting_role: ConsultingRole | None = None
     notes: str | None
     updated_at: datetime
 

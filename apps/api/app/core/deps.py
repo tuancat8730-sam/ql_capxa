@@ -14,6 +14,7 @@ from app.core.errors import AppError
 from app.core.rbac import Level, can
 from app.core.security import decode_token
 from app.models import User
+from app.services.mailer import Mailer, build_mailer
 from app.services.storage import S3Storage, Storage
 
 _bearer = HTTPBearer(auto_error=False)
@@ -30,6 +31,17 @@ async def get_storage(request: Request) -> Storage:
 
 
 StorageDep = Annotated[Storage, Depends(get_storage)]
+
+
+async def get_mailer(request: Request) -> Mailer:
+    """App-wide mailer; tests inject `MemoryMailer` through `create_app(mailer=...)`."""
+    mailer: Mailer | None = request.app.state.mailer
+    if mailer is None:
+        mailer = request.app.state.mailer = build_mailer()
+    return mailer
+
+
+MailerDep = Annotated[Mailer, Depends(get_mailer)]
 
 
 async def _authenticate(

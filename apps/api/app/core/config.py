@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     download_url_ttl_seconds: int = 300
     aws_region: str = "ap-southeast-1"
     ses_sender: str = "no-reply@example.test"
+    mail_backend: str = "smtp"  # smtp (mailpit in dev) | ses | memory (tests)
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    # Re-run the alert engine in the background after writes that can change an alert (SPEC 7).
+    alert_refresh_on_write: bool = True
+    app_base_url: str = "http://localhost:5173"
     cors_origins: str = "http://localhost:5173"
     app_timezone: str = "Asia/Ho_Chi_Minh"
     alert_run_hours: str = "6,13"

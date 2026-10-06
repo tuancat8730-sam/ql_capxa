@@ -49,6 +49,7 @@ PACKAGE_STATUSES = (
     "cancelled",
 )
 HEALTH_VALUES = ("green", "amber", "red", "grey")
+CONSULTING_ROLES = ("tvqlda", "tvgs", "other")
 
 
 class Organization(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -98,6 +99,7 @@ class Package(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
         enum_check("current_stage", STAGE_CODES),
         enum_check("status", PACKAGE_STATUSES),
         enum_check("health", HEALTH_VALUES),
+        enum_check("consulting_role", CONSULTING_ROLES),
     )
 
     project_id: Mapped[uuid.UUID] = mapped_column(
@@ -122,4 +124,7 @@ class Package(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     health: Mapped[str] = mapped_column(String(10), default="grey", nullable=False)
     health_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_sensitive: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    # Which consulting contract this is (project-management or supervision); drives SPEC 7.1
+    # CROSS_PKG_DEPENDENCY. NULL for supply packages.
+    consulting_role: Mapped[str | None] = mapped_column(String(10), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
