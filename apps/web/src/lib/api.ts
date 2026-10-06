@@ -89,6 +89,7 @@ export const api = {
   post: <T>(path: string, body?: unknown, opts?: { retryOn401?: boolean }) =>
     request<T>('POST', path, body, opts),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
+  put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
   refresh: refreshAccessToken,
 }
 

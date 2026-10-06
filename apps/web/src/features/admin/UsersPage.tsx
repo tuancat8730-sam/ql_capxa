@@ -1,9 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
+import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -18,19 +19,6 @@ const formSchema = z.object({
   role: z.enum(ROLES),
 })
 type FormValues = z.infer<typeof formSchema>
-
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  const { t } = useTranslation()
-  return (
-    <div role="dialog" aria-modal="true" aria-label={title} className="fixed inset-0 z-40 md:flex md:items-center md:justify-center">
-      <button type="button" aria-label={t('common.close')} className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-background p-4 pb-8 md:relative md:inset-auto md:w-full md:max-w-md md:rounded-lg">
-        <h2 className="mb-4 text-xl font-semibold">{title}</h2>
-        {children}
-      </div>
-    </div>
-  )
-}
 
 function UserForm({ user, onDone }: { user?: User; onDone: (temp?: string) => void }) {
   const { t } = useTranslation()
@@ -137,7 +125,7 @@ function TempPassword({ value, onClose }: { value: string; onClose: () => void }
   const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   return (
-    <Sheet title={t('users.tempPasswordTitle')} onClose={onClose}>
+    <BottomSheet title={t('users.tempPasswordTitle')} onClose={onClose}>
       <p className="mb-3 text-sm text-muted-foreground">{t('users.tempPasswordNote')}</p>
       <p className="mb-4 select-all break-all rounded-md bg-muted p-3 font-mono text-lg" data-testid="temp-password">
         {value}
@@ -157,7 +145,7 @@ function TempPassword({ value, onClose }: { value: string; onClose: () => void }
           {t('common.close')}
         </button>
       </div>
-    </Sheet>
+    </BottomSheet>
   )
 }
 
@@ -330,7 +318,7 @@ export function UsersPage() {
       )}
 
       {editing && (
-        <Sheet title={editing === 'new' ? t('users.add') : t('users.edit')} onClose={() => setEditing(null)}>
+        <BottomSheet title={editing === 'new' ? t('users.add') : t('users.edit')} onClose={() => setEditing(null)}>
           <UserForm
             user={editing === 'new' ? undefined : editing}
             onDone={(tempPassword) => {
@@ -338,7 +326,7 @@ export function UsersPage() {
               if (tempPassword) setTemp(tempPassword)
             }}
           />
-        </Sheet>
+        </BottomSheet>
       )}
       {temp && <TempPassword value={temp} onClose={() => setTemp(null)} />}
     </section>

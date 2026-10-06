@@ -5,11 +5,12 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { HealthBadge, StatusBadge } from '@/components/ui/StatusBadge'
 import { api, ApiError } from '@/lib/api'
 import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
+import { ContractGuarantees, ContractPayments } from './ContractFinance'
 import type { ContractDetail, Issue, PackageItem, PackageOverview } from './types'
 
 const TABS = ['overview', 'contracts', 'progress', 'documents', 'risks', 'payments', 'log'] as const
 type Tab = (typeof TABS)[number]
-const IMPLEMENTED: Tab[] = ['overview', 'contracts']
+const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments']
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -254,9 +255,18 @@ export function PackageDetailPage() {
           ) : (
             <div className="space-y-4">
               {contracts.map((c) => (
-                <ContractView key={c.id} c={c} />
+                <div key={c.id} className="space-y-6">
+                  <ContractView c={c} />
+                  <ContractGuarantees contractId={c.id} />
+                </div>
               ))}
             </div>
+          ))}
+        {tab === 'payments' &&
+          (contracts.length === 0 ? (
+            <p className="text-muted-foreground">{t('packages.noContract')}</p>
+          ) : (
+            contracts.map((c) => <ContractPayments key={c.id} contractId={c.id} />)
           ))}
         {!IMPLEMENTED.includes(tab) && <p className="text-muted-foreground">{t('packages.laterMilestone')}</p>}
       </div>

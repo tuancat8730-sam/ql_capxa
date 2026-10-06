@@ -33,5 +33,15 @@ Decisions: no Terraform; `package_access` table for sensitive docs; git remote a
 - Tests: api 408 (97% coverage), web 35.
 - Deferred: shadcn/ui is not used (plain Tailwind components); MoneyInput/BottomSheet generic components arrive with the first money form in M3.
 
-## M3–M8
+## M3 – Bảo lãnh và thanh toán
+- [x] guarantees, payments, disbursement_plan + migration 0003 (up/down/up verified)
+- [x] SPEC 7.2 statuses derived from expiry (`expiring`/`expired` never stored); `services/guarantee_rules.py` (36 tests): GUARANTEE_EXPIRING, ADVANCE_GUARANTEE_SHORT, GUARANTEE_MISSING, reused by the M7 alert engine
+- [x] guarantee CRUD, payment CRUD + workflow (planned → requested → approved → paid via `mark-paid`; only approvers may approve/reject), `GET /guarantees`, `GET /payments`, `GET/PUT /project/disbursement-plan`
+- [x] seed from SPEC 14.4/14.5 (ABBank, TPBank, BIDV, 2 `missing` rows, 5 planned payments)
+- [x] Web: `/contracts` (guarantees, soonest expiry first, critical findings banner, status filter), `/payments` (workflow by role, mark-paid sheet, disbursement plan editor), package detail guarantees + payments tabs; shared `BottomSheet`, `MoneyInput`, client-side permission mirror
+- AC check: with "today" = 05/11/2026 the Package 05 TPBank/BIDV guarantees are `expiring` (8 days) and raise `ADVANCE_GUARANTEE_SHORT` (critical, needed until 19/11). With today's real date (06/10/2026) they are still `valid` because 13/11 is 38 days away; the test pins the date.
+- Tests: api 494, web 55.
+- Deviations: added list endpoints `GET /guarantees` and `GET /payments` and `GET /contracts/{id}/guarantee-checks` (not in the SPEC table) because the `/contracts` and `/payments` screens need cross-contract views. "Outstanding advance" = contract advance − paid recovery payments.
+
+## M4–M8
 Not started.

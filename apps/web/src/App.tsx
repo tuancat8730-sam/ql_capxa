@@ -7,6 +7,8 @@ import { ChangePasswordPage } from './features/auth/ChangePasswordPage'
 import { LoginPage } from './features/auth/LoginPage'
 import { ProfilePage } from './features/auth/ProfilePage'
 import { RequireAuth } from './features/auth/RequireAuth'
+import { GuaranteesPage } from './features/finance/GuaranteesPage'
+import { PaymentsPage } from './features/finance/PaymentsPage'
 import { PackageDetailPage } from './features/packages/PackageDetailPage'
 import { PackagesPage } from './features/packages/PackagesPage'
 
@@ -20,7 +22,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/admin/users', '/profile', '/packages'])
+const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments'])
 
 export default function App() {
   return (
@@ -37,6 +39,8 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/packages" element={<PackagesPage />} />
           <Route path="/packages/:id" element={<PackageDetailPage />} />
+          <Route path="/contracts" element={<GuaranteesPage />} />
+          <Route path="/payments" element={<PaymentsPage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="/admin/users" element={<UsersPage />} />
           </Route>
