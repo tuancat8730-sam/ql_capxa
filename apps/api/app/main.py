@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
-from app.routers import audit, auth, contracts, packages, project, users
+from app.routers import audit, auth, contracts, finance, packages, project, users
 
 
 def create_app() -> FastAPI:
@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     api.include_router(project.router)
     api.include_router(packages.router)
     api.include_router(contracts.router)
+    api.include_router(finance.router)
     app.include_router(api)
     return app
 

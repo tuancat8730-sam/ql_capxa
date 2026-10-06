@@ -22,6 +22,10 @@ def json_safe(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, uuid.UUID):
         return str(value)
+    if isinstance(value, dict):
+        return {k: json_safe(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [json_safe(v) for v in value]
     return value
 
 

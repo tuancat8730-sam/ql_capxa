@@ -4,6 +4,7 @@ import asyncio
 import os
 
 from app.core.db import get_engine, get_sessionmaker
+from app.seed.finance import seed_finance
 from app.seed.project import seed_project
 from app.seed.users import ensure_admin
 
@@ -19,7 +20,8 @@ async def main() -> None:
         print(f"Admin {result.email} already exists; left unchanged")
     async with get_sessionmaker()() as session:
         await seed_project(session)
-    print("Seeded project, 8 packages and contracts (idempotent)")
+        await seed_finance(session)
+    print("Seeded project, 8 packages, contracts, guarantees and payments (idempotent)")
     await get_engine().dispose()
 
 
