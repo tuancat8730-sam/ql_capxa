@@ -7,6 +7,8 @@ import { ChangePasswordPage } from './features/auth/ChangePasswordPage'
 import { LoginPage } from './features/auth/LoginPage'
 import { ProfilePage } from './features/auth/ProfilePage'
 import { RequireAuth } from './features/auth/RequireAuth'
+import { PackageDetailPage } from './features/packages/PackageDetailPage'
+import { PackagesPage } from './features/packages/PackagesPage'
 
 function PlaceholderPage({ titleKey }: { titleKey: string }) {
   const { t } = useTranslation()
@@ -18,7 +20,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/admin/users', '/profile'])
+const implemented = new Set(['/admin/users', '/profile', '/packages'])
 
 export default function App() {
   return (
@@ -33,6 +35,8 @@ export default function App() {
               <Route key={item.to} path={item.to} element={<PlaceholderPage titleKey={item.labelKey} />} />
             ))}
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/packages" element={<PackagesPage />} />
+          <Route path="/packages/:id" element={<PackageDetailPage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="/admin/users" element={<UsersPage />} />
           </Route>

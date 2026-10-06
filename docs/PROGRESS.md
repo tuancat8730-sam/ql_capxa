@@ -22,5 +22,16 @@ Decisions: no Terraform; `package_access` table for sensitive docs; git remote a
 - Tests: api 325 (95% coverage), web 29. Deviation: audit rows are written by an explicit `audit.record()` call in each router rather than a generic middleware, so diffs are precise and secrets are scrubbed.
 - Note: sensitive-document access (`package_access`) is deferred to M4 where documents exist; the matrix already encodes the "S" (assigned only) level.
 
-## M2–M8
+## M2 – Dự án, gói thầu, hợp đồng
+- [x] organizations, projects, packages, contracts, contract_parties/items/amendments + migration 0002 (up/down/up verified)
+- [x] SPEC 7.5 consistency rules (`services/rules.py`, 30 tests: ok / boundary / violation each), shown on every contract response
+- [x] /project, /packages (+overview), /contracts and child CRUD; matrix-based 403 tests for all 8 roles
+- [x] planned end date = start + duration - 1, recomputed on edit unless `end_date_override`
+- [x] seed from SPEC 14 (8 packages, 7 contracts, parties); unknown values stay NULL, questions in `docs/OPEN_QUESTIONS.md`
+- [x] Web: package list (cards on phone, table from md, health filter chips), package detail (tabs via `?tab=`, accordion overview, contract tab with flags)
+- AC check: flags appear on Gói 02 (duration, treasury account, lump-sum vs price adjustment) and Gói 04 (end date). Gói 01 is flagged too (SPEC 14.3 lists its 18/9 vs 17/9 discrepancy); Gói 06 shows an info-level override.
+- Tests: api 408 (97% coverage), web 35.
+- Deferred: shadcn/ui is not used (plain Tailwind components); MoneyInput/BottomSheet generic components arrive with the first money form in M3.
+
+## M3–M8
 Not started.
