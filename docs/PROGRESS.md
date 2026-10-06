@@ -69,5 +69,16 @@ Decisions: no Terraform; `package_access` table for sensitive docs; git remote a
 - Tests: api 679 (97% coverage), web 122.
 - Deviations / notes: seed marks S2 done only for packages with a signed contract and S3 dates from the contract; everything else stays empty (OPEN_QUESTIONS 21). Playwright, Lighthouse and real-device checks are not run yet (M8). QL-06 columns are filled from document dates and the contract signing date; "Số nhà thầu" and "Vướng mắc" have no data source yet.
 
-## M6–M8
+## M6 – Rủi ro và vướng mắc
+- [x] risks, issues (+ issue_events), holidays, meetings, action_items, change_requests + migration 0006 (up/down/up verified)
+- [x] risk register: score computed by the server (CHECK constraint keeps it honest), 5×5 matrix with the ids per cell, only the director closes or reopens, 14-day review reminder + `POST /risks/{id}/review`
+- [x] issues: 3 levels; deadline per SPEC 7.4 (L1 +2 days, L2 +3 working days skipping Sat/Sun/holidays using the Vietnam date, L3 manual, investor request 1 calendar day and kept on escalation); escalation history; due-date edits need a reason; overdue flags/days; only the director closes level 3
+- [x] meetings with attendees, action items (global overdue view for the dashboard), change requests (approve/reject only by the director, link to a contract amendment), admin holidays
+- [x] seed: the ten risks of SPEC 14.6 (probability/impact are an initial assessment, OPEN_QUESTIONS 24)
+- [x] Web: `/risks` (matrix tap-to-filter, level in words + score, form with live score), `/issues` (list/table, board from lg, level and overdue chips, deadline in words, detail sheet with history, escalate, resolve, edit deadline), `/meetings` (overdue banner, actions), `/change-requests` (director decision sheet), package "Rủi ro & vướng mắc" tab
+- AC check: seed risks land in the matrix cells computed from their scores (test compares the grid with the seed); overdue issues are flagged and filterable (alert generation is M7).
+- Tests: api 824 (98% coverage), web 154.
+- Notes: risk owner has no picker in the UI (only admins can list users); owners can be set through the API. Issue search is plain `ILIKE` (no diacritic folding) unlike documents.
+
+## M7–M8
 Not started.

@@ -8,13 +8,14 @@ import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
 import { useAuth } from '@/features/auth/AuthContext'
 import { StagesTab } from '@/features/progress/StagesTab'
 import { AccessSection } from './AccessSection'
+import { RisksIssuesTab } from './RisksIssuesTab'
 import { ChecklistTab } from './ChecklistTab'
 import { ContractGuarantees, ContractPayments } from './ContractFinance'
 import type { ContractDetail, Issue, PackageItem, PackageOverview } from './types'
 
 const TABS = ['overview', 'contracts', 'progress', 'documents', 'risks', 'payments', 'log'] as const
 type Tab = (typeof TABS)[number]
-const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments', 'documents', 'progress']
+const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments', 'documents', 'progress', 'risks']
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -274,6 +275,7 @@ export function PackageDetailPage() {
             contracts.map((c) => <ContractPayments key={c.id} contractId={c.id} />)
           ))}
         {tab === 'progress' && <StagesTab packageId={pkg.id} />}
+        {tab === 'risks' && <RisksIssuesTab packageId={pkg.id} />}
         {tab === 'documents' && (
           <div className="space-y-6">
             <ChecklistTab packageId={pkg.id} />

@@ -16,6 +16,12 @@ const PaymentsPage = lazy(() => import('./features/finance/PaymentsPage').then((
 const PackageDetailPage = lazy(() => import('./features/packages/PackageDetailPage').then((m) => ({ default: m.PackageDetailPage })))
 const ProgressPage = lazy(() => import('./features/progress/ProgressPage').then((m) => ({ default: m.ProgressPage })))
 const DailyLogPage = lazy(() => import('./features/progress/DailyLogPage').then((m) => ({ default: m.DailyLogPage })))
+const RisksPage = lazy(() => import('./features/risks/RisksPage').then((m) => ({ default: m.RisksPage })))
+const IssuesPage = lazy(() => import('./features/issues/IssuesPage').then((m) => ({ default: m.IssuesPage })))
+const MeetingsPage = lazy(() => import('./features/meetings/MeetingsPage').then((m) => ({ default: m.MeetingsPage })))
+const ChangeRequestsPage = lazy(() =>
+  import('./features/meetings/ChangeRequestsPage').then((m) => ({ default: m.ChangeRequestsPage })),
+)
 const PackagesPage = lazy(() => import('./features/packages/PackagesPage').then((m) => ({ default: m.PackagesPage })))
 
 function PlaceholderPage({ titleKey }: { titleKey: string }) {
@@ -28,7 +34,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log'])
+const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests'])
 
 export default function App() {
   const { t } = useTranslation()
@@ -52,6 +58,10 @@ export default function App() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/daily-log" element={<DailyLogPage />} />
+          <Route path="/risks" element={<RisksPage />} />
+          <Route path="/issues" element={<IssuesPage />} />
+          <Route path="/meetings" element={<MeetingsPage />} />
+          <Route path="/change-requests" element={<ChangeRequestsPage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="/admin/users" element={<UsersPage />} />
           </Route>
