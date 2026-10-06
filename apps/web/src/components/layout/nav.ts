@@ -41,7 +41,7 @@ export const moreNav: NavItem[] = [
   { to: '/meetings', labelKey: 'nav.meetings', icon: MessageSquare },
   { to: '/change-requests', labelKey: 'nav.changeRequests', icon: GitPullRequest },
   { to: '/outgoing-docs', labelKey: 'nav.outgoingDocs', icon: Send },
-  { to: '/admin', labelKey: 'nav.admin', icon: Settings },
+  { to: '/admin/users', labelKey: 'nav.admin', icon: Settings },
   { to: '/profile', labelKey: 'nav.profile', icon: CalendarClock },
 ]
 
