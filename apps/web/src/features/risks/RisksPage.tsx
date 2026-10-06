@@ -9,6 +9,7 @@ import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, type Page } from '@/lib/api'
 import { formatDate, NO_DATA } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import { ExportButton } from '@/components/ui/ExportButton'
 import { RiskForm } from './RiskForm'
 import { RiskMatrix } from './RiskMatrix'
 import { RISK_CATEGORIES, RISK_STATUSES, type Matrix, type Risk, type RiskLevel } from './types'
@@ -91,11 +92,14 @@ export function RisksPage() {
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold md:text-2xl">{t('risks.title')}</h1>
-        {canWrite && (
-          <button type="button" className={`${primaryButton} !w-auto`} onClick={() => setEditing('new')}>
-            {t('risks.add')}
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <ExportButton path="/export/risks.xlsx" />
+          {canWrite && (
+            <button type="button" className={`${primaryButton} !w-auto`} onClick={() => setEditing('new')}>
+              {t('risks.add')}
+            </button>
+          )}
+        </div>
       </div>
 
       {matrix.data && <RiskMatrix matrix={matrix.data} selected={cell} onSelect={setCell} />}

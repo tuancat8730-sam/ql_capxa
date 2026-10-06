@@ -6,11 +6,13 @@ import { HealthBadge, StatusBadge } from '@/components/ui/StatusBadge'
 import { api, ApiError } from '@/lib/api'
 import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
 import { useAuth } from '@/features/auth/AuthContext'
+import { can } from '@/lib/permissions'
 import { StagesTab } from '@/features/progress/StagesTab'
 import { AccessSection } from './AccessSection'
 import { RisksIssuesTab } from './RisksIssuesTab'
 import { ChecklistTab } from './ChecklistTab'
 import { ContractGuarantees, ContractPayments } from './ContractFinance'
+import { ImportItems } from './ImportItems'
 import type { ContractDetail, Issue, PackageItem, PackageOverview } from './types'
 
 const TABS = ['overview', 'contracts', 'progress', 'documents', 'risks', 'payments', 'log'] as const
@@ -68,6 +70,7 @@ function IssueList({ issues }: { issues: Issue[] }) {
 
 function ContractView({ c }: { c: ContractDetail }) {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const end = c.extended_end_date ?? c.planned_end_date
   return (
     <div className="space-y-4">
@@ -132,6 +135,7 @@ function ContractView({ c }: { c: ContractDetail }) {
         <h3 className="mb-2 font-semibold">{t('packages.sections.checks')}</h3>
         <IssueList issues={c.consistency} />
       </div>
+      {can(user?.role, 'contract', 'W') && <ImportItems contractId={c.id} />}
     </div>
   )
 }

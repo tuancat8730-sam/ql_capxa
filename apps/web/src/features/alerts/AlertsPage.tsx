@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
+import { ExportButton } from '@/components/ui/ExportButton'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { ApiError, api, type Page } from '@/lib/api'
@@ -107,11 +108,14 @@ export function AlertsPage() {
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold md:text-2xl">{t('alerts.title')}</h1>
-        {canRefresh && (
-          <button type="button" className="min-h-11 rounded-md border border-border px-3" disabled={run.isPending} onClick={() => run.mutate()}>
-            {t('alerts.refresh')}
-          </button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <ExportButton path="/export/alerts.xlsx" />
+          {canRefresh && (
+            <button type="button" className="min-h-11 rounded-md border border-border px-3" disabled={run.isPending} onClick={() => run.mutate()}>
+              {t('alerts.refresh')}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label={t('alerts.title')}>

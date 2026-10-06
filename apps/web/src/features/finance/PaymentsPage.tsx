@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
+import { ExportButton } from '@/components/ui/ExportButton'
 import { MoneyInput } from '@/components/ui/MoneyInput'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -256,7 +257,10 @@ export function PaymentsPage() {
 
   return (
     <section className="space-y-6">
-      <h1 className="text-xl font-semibold md:text-2xl">{t('payments.title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold md:text-2xl">{t('payments.title')}</h1>
+        <ExportButton path="/export/ql07.xlsx" label={t('guarantees.exportQl07')} />
+      </div>
 
       {data && (
         <dl className="grid grid-cols-2 gap-2">

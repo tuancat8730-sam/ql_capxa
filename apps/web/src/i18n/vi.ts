@@ -178,6 +178,7 @@ export const vi = {
     note: 'Ghi chú dữ liệu',
   },
   guarantees: {
+    exportQl07: 'Xuất QL-07 (Excel)',
     title: 'Hợp đồng và bảo lãnh',
     attention: 'Cần xử lý',
     allStatus: 'Tất cả',
@@ -255,6 +256,7 @@ export const vi = {
     invalidTransition: 'Không thể chuyển sang trạng thái này',
   },
   documents: {
+    exportChecklist: 'Xuất danh mục hồ sơ (Excel)',
     title: 'Tài liệu',
     search: 'Tìm theo tiêu đề, số văn bản, nội dung',
     allPackages: 'Mọi gói thầu',
@@ -592,6 +594,22 @@ export const vi = {
     search: 'Tìm theo trích yếu hoặc số',
     createdBy: 'Người lấy số',
     none: 'Chưa có số văn bản nào',
+  },
+  exportXlsx: { button: 'Xuất Excel', busy: 'Đang xuất…', failed: 'Không xuất được tệp. Vui lòng thử lại.' },
+  importItems: {
+    title: 'Nhập hàng hóa từ Excel',
+    hint: 'Tệp .xlsx có các cột STT, Tên hàng hóa, ĐVT, Số lượng, Đơn giá, Thành tiền, Bảo hành, Kiểm định, Xuất xứ, Ghi chú.',
+    template: 'Tải tệp mẫu',
+    choose: 'Chọn tệp Excel',
+    replace: 'Thay toàn bộ danh sách hiện có',
+    check: 'Kiểm tra tệp',
+    commit: 'Nhập {{n}} dòng',
+    result: '{{valid}}/{{total}} dòng hợp lệ, tổng {{amount}}',
+    matches: 'Khớp giá trị hợp đồng',
+    differs: 'Không khớp giá trị hợp đồng ({{value}})',
+    errors: 'Dòng {{row}}: {{message}}',
+    done: 'Đã nhập {{n}} dòng hàng hóa',
+    noValue: 'Hợp đồng chưa có giá trị để đối chiếu',
   },
   common: {
     loading: 'Đang tải…',

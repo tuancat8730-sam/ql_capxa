@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
+import { ExportButton } from '@/components/ui/ExportButton'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
@@ -88,6 +89,7 @@ export function IssuesPage() {
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold md:text-2xl">{t('issues.title')}</h1>
+        <ExportButton path="/export/issues.xlsx" />
         {canWrite && (
           <button type="button" className={`${primaryButton} !w-auto`} onClick={() => setAdding(true)}>
             {t('issues.add')}

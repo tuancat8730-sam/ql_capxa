@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
+import { ExportButton } from '@/components/ui/ExportButton'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
@@ -103,6 +104,7 @@ export function DocumentsPage() {
     <section className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold md:text-2xl">{t('documents.title')}</h1>
+        <ExportButton path="/export/checklist.xlsx" label={t('documents.exportChecklist')} />
         {canWrite && (
           <button type="button" className={`${primaryButton} !w-auto`} onClick={() => setUploading({})}>
             {t('documents.upload')}

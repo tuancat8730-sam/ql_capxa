@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
+import { ExportButton } from '@/components/ui/ExportButton'
 import { useAuth } from '@/features/auth/AuthContext'
 import { api, type Page } from '@/lib/api'
 import { formatMoney, NO_DATA } from '@/lib/format'
@@ -37,7 +38,10 @@ export function GuaranteesPage() {
 
   return (
     <section className="space-y-4">
-      <h1 className="text-xl font-semibold md:text-2xl">{t('guarantees.title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold md:text-2xl">{t('guarantees.title')}</h1>
+        {can(user?.role, 'payment', 'R') && <ExportButton path="/export/ql07.xlsx" label={t('guarantees.exportQl07')} />}
+      </div>
 
       {data && (
         <div

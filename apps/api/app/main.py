@@ -12,8 +12,10 @@ from app.routers import (
     dashboard,
     doc_numbers,
     documents,
+    export_lists,
     exports,
     finance,
+    imports,
     issues,
     meetings,
     packages,
@@ -83,6 +85,8 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
     api.include_router(checklists.router)
     api.include_router(progress.router)
     api.include_router(exports.router)
+    api.include_router(export_lists.router)
+    api.include_router(imports.router)
     api.include_router(risks.router)
     api.include_router(issues.router)
     api.include_router(meetings.router)

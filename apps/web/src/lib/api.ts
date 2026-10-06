@@ -51,13 +51,14 @@ async function send(
   extra: Record<string, string> = {},
 ): Promise<Response> {
   const headers: Record<string, string> = { ...extra }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  const isForm = body instanceof FormData // the browser sets the multipart boundary itself
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
   return fetch(`${BASE}${path}`, {
     method,
     headers,
     credentials: 'include',
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   })
 }
 
@@ -104,6 +105,7 @@ export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown, opts?: { retryOn401?: boolean }) =>
     request<T>('POST', path, body, opts),
+  postForm: <T>(path: string, form: FormData) => request<T>('POST', path, form),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
   request,
