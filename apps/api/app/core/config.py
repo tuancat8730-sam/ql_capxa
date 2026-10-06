@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me"
     jwt_access_minutes: int = 15
     jwt_refresh_days: int = 7
+    cookie_secure: bool = True
     s3_bucket: str = "qlda-documents"
     s3_endpoint_url: str | None = None
     aws_region: str = "ap-southeast-1"

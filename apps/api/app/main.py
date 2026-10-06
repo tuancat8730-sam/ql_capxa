@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.routers import audit, auth, users
 
 
 def create_app() -> FastAPI:
@@ -28,6 +29,9 @@ def create_app() -> FastAPI:
         # Exercises request validation; removed once real routers exist.
         return {"n": n}
 
+    api.include_router(auth.router)
+    api.include_router(users.router)
+    api.include_router(audit.router)
     app.include_router(api)
     return app
 
