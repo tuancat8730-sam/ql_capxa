@@ -43,5 +43,18 @@ Decisions: no Terraform; `package_access` table for sensitive docs; git remote a
 - Tests: api 494, web 55.
 - Deviations: added list endpoints `GET /guarantees` and `GET /payments` and `GET /contracts/{id}/guarantee-checks` (not in the SPEC table) because the `/contracts` and `/payments` screens need cross-contract views. "Outstanding advance" = contract advance − paid recovery payments.
 
-## M4–M8
+## M4 – Kho tài liệu
+- [x] documents, checklist_templates, checklist_items, package_access + migration 0004 (creates `pg_trgm`, `unaccent`; up/down/up verified)
+- [x] `Storage` interface: `S3Storage` (boto3, presigned PUT/GET, browser-facing endpoint separate from the internal one) and `MemoryStorage` for tests
+- [x] upload flow: `upload-url` → direct PUT → `POST /documents` confirm (object exists, size and key match, SHA-256 computed server-side, duplicate blocked per package); versions; soft delete; PATCH metadata
+- [x] text extraction (pdf via pypdf, docx, xlsx, txt) in a background task; scanned PDFs → `needs_ocr`; broken files → `failed` but the upload is kept
+- [x] diacritic-free search (`unaccent` + `tsvector` + escaped `ILIKE`); "bao lanh tam ung" finds "Bảo lãnh tạm ứng"
+- [x] sensitive documents: forced for sensitive packages; admin/director see all, procurement/technical only with `package_access`; others get a redacted stub in lists and nothing in search; every download is audited
+- [x] checklist: templates from SPEC 4.7 (28 goods / 8 consulting items), instantiate, auto-link on upload and version change, N/A handling, overdue flag, completion % on the package card
+- [x] Web: `/documents` (search, filters, multi-file upload with progress and retry, camera capture with ≤1600 px compression, full-screen PDF/image preview, version upload), package "Hồ sơ" tab (checklist + admin-only access section), route-level code splitting (initial JS ≈ 69 KB gzip)
+- AC check: 50 MB upload through a presigned URL verified over real HTTP (moto S3 server); search with and without diacritics; viewer never sees sensitive documents.
+- Tests: api 600+ (97% coverage), web 77.
+- Deviations / notes: MinIO's image could not be pulled in this environment, so S3 behaviour is verified against moto, not MinIO itself (`make up` + a manual upload is still worth doing once). PDF text uses `pypdf` (pure Python) instead of `pdftotext`, so no poppler dependency in the image. Browser does not hash files; the API computes SHA-256 from the stored object. Extraction runs as an in-process background task; moving it to the worker queue is a later optimisation. Metadata edit (PATCH) has an API but no UI yet; the admin access UI lists users through `/users`, so directors manage access through the API only.
+
+## M5–M8
 Not started.

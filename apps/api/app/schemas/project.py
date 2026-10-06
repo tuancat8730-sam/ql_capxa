@@ -110,3 +110,4 @@ class PackageListItem(PackageOut):
     contract_value: Number | None = None
     contract_end_date: str | None = None
     needs_review: bool = False
+    checklist_pct: float | None = None

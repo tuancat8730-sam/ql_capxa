@@ -22,6 +22,7 @@ export interface PackageItem {
   contract_value?: number | null
   contract_end_date?: string | null
   needs_review?: boolean
+  checklist_pct?: number | null
 }
 
 export interface Issue {

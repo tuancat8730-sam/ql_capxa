@@ -20,3 +20,10 @@ Ghi theo SPEC mục 0.3: chỗ mơ hồ → chọn phương án mặc định, g
 13. **Gói 05, liên danh**: chưa rõ bên nào đứng đầu. Mặc định P&N = `lead` (nêu trước). Tạm ứng theo thành viên chưa nạp (không biết bảo lãnh TPBank/BIDV của bên nào).
 14. **Gói 05, tạm ứng 30%** là suy ra từ tổng hai bảo lãnh tạm ứng (4.079.992.500 = 30% × 13.599.975.000), ghi chú trong `data_quality_note`.
 15. **Trạng thái và giai đoạn hiện tại** mặc định `contract_signed` / `S3_EXECUTION` cho gói đã có hợp đồng; Gói 03 `bidding` / `S2_SELECTION`. Sức khỏe gói (M7) chưa tính: `grey`.
+
+## Phát sinh ở M4 (tài liệu)
+16. **Loại tài liệu cho một số hạng mục checklist** không có mã chuẩn trong SPEC 4.6 (Mẫu 02.a, chứng nhận bảo hành, biên bản vận hành thử, sản phẩm bàn giao của gói tư vấn): dùng `other` kèm tiêu đề hạng mục.
+17. **Hạng mục "không bắt buộc"**: SPEC ghi "(nếu có)" sau kiểm định/hiệu chuẩn. Áp dụng cho cả chứng nhận bảo hành; CO, CQ để bắt buộc. Cần xác nhận.
+18. **Hạn của hạng mục checklist** (`due_offset_days`) tính từ ngày hiệu lực hợp đồng (hoặc ngày ký): bảo lãnh thực hiện +7 ngày, bảo lãnh tạm ứng +0. Các hạng mục khác chưa có hạn.
+19. **Chặn trùng tệp**: SPEC 4.6 nói "chặn", mục 9 nói "cảnh báo". Chọn chặn (409) trong cùng gói; tài liệu cấp dự án không bị chặn.
+20. **Giám đốc (director) quản lý quyền xem tài liệu nhạy cảm** qua API, nhưng giao diện chỉ làm cho admin vì danh sách người dùng chỉ admin được gọi.

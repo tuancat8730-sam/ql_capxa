@@ -261,3 +261,30 @@ async def test_restricted_documents_do_not_leak_their_titles_through_the_checkli
     assert (
         as_viewer["document_title"] is None and as_viewer["document_restricted"] is True
     )  # ...the title is not
+
+
+async def test_package_list_shows_checklist_completion(
+    session: AsyncSession, seeded: dict[int, Package], storage: MemoryStorage, make_client_for
+) -> None:
+    c = await make_client_for(session, "clerk")
+    before = {
+        p["number"]: p["checklist_pct"] for p in (await c.get("/api/v1/packages")).json()["items"]
+    }
+    assert set(before.values()) == {0.0}
+    await upload(
+        c, storage, seeded[6], doc_type="contract", title="Hợp đồng TVQLDA", name="hd80.pdf"
+    )
+    after = {
+        p["number"]: p["checklist_pct"] for p in (await c.get("/api/v1/packages")).json()["items"]
+    }
+    assert after[6] == round(1 / len(CONSULTING) * 100, 1)  # 1 of 8 required items
+    assert after[4] == 0.0
+
+
+async def test_package_without_checklist_has_no_percentage(
+    session: AsyncSession, make_client_for
+) -> None:
+    await seed_project(session)  # no checklist seeded
+    c = await make_client_for(session, "viewer")
+    items = (await c.get("/api/v1/packages")).json()["items"]
+    assert all(p["checklist_pct"] is None for p in items)

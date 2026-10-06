@@ -16,6 +16,7 @@ from app.schemas.contract import ContractOut
 from app.schemas.project import PackageListItem, PackageOut, PackageUpdate, ProjectOut
 from app.services import audit
 from app.services.contracts import contract_out
+from app.services.documents import checklist_completion
 
 router = APIRouter(prefix="/packages", tags=["packages"])
 
@@ -92,6 +93,7 @@ async def list_packages(
             end = detail.extended_end_date or detail.planned_end_date
             item.contract_end_date = end.isoformat() if end else None
             item.needs_review = any(c.needs_review for c in [detail])
+        item.checklist_pct = await checklist_completion(session, package.id)
         items.append(item)
     return Page[PackageListItem](
         items=items, total=total, page=pagination.page, page_size=pagination.page_size

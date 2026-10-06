@@ -210,6 +210,33 @@ async def process_document(document_id: uuid.UUID, storage: Storage) -> None:
 # --- checklists -------------------------------------------------------------------------------
 
 
+async def checklist_completion(session: AsyncSession, package_id: uuid.UUID) -> float | None:
+    """Share of required, applicable checklist items already received; None without a checklist."""
+    rows = (
+        (
+            await session.execute(
+                select(ChecklistItem.status).where(
+                    ChecklistItem.package_id == package_id,
+                    ChecklistItem.required.is_(True),
+                    ChecklistItem.status != "not_applicable",
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    total_items = (
+        await session.execute(
+            select(ChecklistItem.id).where(ChecklistItem.package_id == package_id).limit(1)
+        )
+    ).first()
+    if total_items is None:
+        return None
+    if not rows:
+        return 100.0
+    return round(sum(1 for r in rows if r == "received") / len(rows) * 100, 1)
+
+
 async def contract_start(session: AsyncSession, package_id: uuid.UUID) -> object | None:
     contract = (
         (

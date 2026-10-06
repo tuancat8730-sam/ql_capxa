@@ -130,7 +130,7 @@ describe('packages UI', () => {
         route(url) ??
           res(200, {
             items: [
-              pkg({ needs_review: true, contract_end_date: '2026-11-13' }),
+              pkg({ needs_review: true, contract_end_date: '2026-11-13', checklist_pct: 12.5 }),
               pkg({ id: 'p3', number: 3, name: 'Gói thầu số 03', winning_price: null, winning_org_text: null, health_reason: 'Chưa có hợp đồng' }),
             ],
             total: 2,
@@ -143,6 +143,7 @@ describe('packages UI', () => {
     const cards = await screen.findAllByRole('listitem')
     expect(cards).toHaveLength(2)
     expect(within(cards[0]).getByText('Cần kiểm tra')).toBeInTheDocument()
+    expect(within(cards[0]).getByText(/Hồ sơ 12,5%/)).toBeInTheDocument()
     expect(within(cards[0]).getByText(/51\.505\.400\.000/)).toBeInTheDocument()
     expect(within(cards[1]).getAllByText(/Chưa có dữ liệu/).length).toBeGreaterThanOrEqual(1)
     expect(within(cards[1]).getByText('Chưa bắt đầu')).toBeInTheDocument()

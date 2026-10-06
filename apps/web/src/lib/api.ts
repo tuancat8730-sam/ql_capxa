@@ -90,6 +90,7 @@ export const api = {
     request<T>('POST', path, body, opts),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
+  request,
   refresh: refreshAccessToken,
 }
 

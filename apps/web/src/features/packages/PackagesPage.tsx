@@ -61,6 +61,7 @@ function PackageCard({ p }: { p: PackageItem }) {
             · {t('packages.endDate')} {formatDate(p.contract_end_date)} (<DaysLeft iso={p.contract_end_date} />)
           </span>
         )}
+        {p.checklist_pct != null && <span>· {t('packages.documentsPct', { pct: String(p.checklist_pct).replace('.', ',') })}</span>}
         {p.needs_review && <StatusBadge tone="warning" icon="⚠">{t('packages.needsReview')}</StatusBadge>}
         {p.is_sensitive && <StatusBadge tone="info" icon="🔒">{t('packages.sensitive')}</StatusBadge>}
       </div>

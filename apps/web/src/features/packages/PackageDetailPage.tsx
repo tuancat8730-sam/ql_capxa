@@ -5,12 +5,15 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { HealthBadge, StatusBadge } from '@/components/ui/StatusBadge'
 import { api, ApiError } from '@/lib/api'
 import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
+import { useAuth } from '@/features/auth/AuthContext'
+import { AccessSection } from './AccessSection'
+import { ChecklistTab } from './ChecklistTab'
 import { ContractGuarantees, ContractPayments } from './ContractFinance'
 import type { ContractDetail, Issue, PackageItem, PackageOverview } from './types'
 
 const TABS = ['overview', 'contracts', 'progress', 'documents', 'risks', 'payments', 'log'] as const
 type Tab = (typeof TABS)[number]
-const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments']
+const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments', 'documents']
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -170,6 +173,7 @@ function OverviewTab({ pkg, contracts }: { pkg: PackageItem; contracts: Contract
 
 export function PackageDetailPage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
   const requested = params.get('tab') as Tab | null
@@ -268,6 +272,12 @@ export function PackageDetailPage() {
           ) : (
             contracts.map((c) => <ContractPayments key={c.id} contractId={c.id} />)
           ))}
+        {tab === 'documents' && (
+          <div className="space-y-6">
+            <ChecklistTab packageId={pkg.id} />
+            {pkg.is_sensitive && user?.role === 'admin' && <AccessSection packageId={pkg.id} />}
+          </div>
+        )}
         {!IMPLEMENTED.includes(tab) && <p className="text-muted-foreground">{t('packages.laterMilestone')}</p>}
       </div>
     </section>

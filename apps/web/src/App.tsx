@@ -1,16 +1,20 @@
+import { lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { sidebarNav } from './components/layout/nav'
-import { UsersPage } from './features/admin/UsersPage'
 import { ChangePasswordPage } from './features/auth/ChangePasswordPage'
 import { LoginPage } from './features/auth/LoginPage'
-import { ProfilePage } from './features/auth/ProfilePage'
 import { RequireAuth } from './features/auth/RequireAuth'
-import { GuaranteesPage } from './features/finance/GuaranteesPage'
-import { PaymentsPage } from './features/finance/PaymentsPage'
-import { PackageDetailPage } from './features/packages/PackageDetailPage'
-import { PackagesPage } from './features/packages/PackagesPage'
+
+// Route-level code splitting keeps the first load small on slow 4G (SPEC 15.1, 15.10).
+const UsersPage = lazy(() => import('./features/admin/UsersPage').then((m) => ({ default: m.UsersPage })))
+const ProfilePage = lazy(() => import('./features/auth/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const DocumentsPage = lazy(() => import('./features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
+const GuaranteesPage = lazy(() => import('./features/finance/GuaranteesPage').then((m) => ({ default: m.GuaranteesPage })))
+const PaymentsPage = lazy(() => import('./features/finance/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
+const PackageDetailPage = lazy(() => import('./features/packages/PackageDetailPage').then((m) => ({ default: m.PackageDetailPage })))
+const PackagesPage = lazy(() => import('./features/packages/PackagesPage').then((m) => ({ default: m.PackagesPage })))
 
 function PlaceholderPage({ titleKey }: { titleKey: string }) {
   const { t } = useTranslation()
@@ -22,10 +26,12 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments'])
+const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents'])
 
 export default function App() {
+  const { t } = useTranslation()
   return (
+    <Suspense fallback={<p role="status" className="p-6 text-muted-foreground">{t('common.loading')}</p>}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
@@ -41,11 +47,13 @@ export default function App() {
           <Route path="/packages/:id" element={<PackageDetailPage />} />
           <Route path="/contracts" element={<GuaranteesPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="/admin/users" element={<UsersPage />} />
           </Route>
         </Route>
       </Route>
     </Routes>
+    </Suspense>
   )
 }
