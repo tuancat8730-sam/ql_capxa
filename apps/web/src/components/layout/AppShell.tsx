@@ -2,28 +2,34 @@ import { MoreHorizontal, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet } from 'react-router-dom'
+import { useAlertBadge } from '@/features/alerts/useAlertCount'
 import { startAutoSync } from '@/lib/offline'
 import { OfflineBanner } from './OfflineBanner'
 import { moreNav, type NavItem, primaryNav, sidebarNav } from './nav'
 
 const touchTarget = 'min-h-11 min-w-11'
 
-function BottomNavLink({ item }: { item: NavItem }) {
+function BottomNavLink({ item, badge = 0 }: { item: NavItem; badge?: number }) {
   const { t } = useTranslation()
   const Icon = item.icon
   return (
     <NavLink
       to={item.to}
       end={item.to === '/'}
-      aria-label={t(item.labelKey)}
+      aria-label={badge > 0 ? `${t(item.labelKey)} (${badge})` : t(item.labelKey)}
       className={({ isActive }) =>
-        `flex flex-1 flex-col items-center justify-center gap-0.5 text-xs ${touchTarget} ${
+        `relative flex flex-1 flex-col items-center justify-center gap-0.5 text-xs ${touchTarget} ${
           isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
         }`
       }
     >
       <Icon size={20} aria-hidden />
       <span>{t(item.labelKey)}</span>
+      {badge > 0 && (
+        <span aria-hidden className="absolute right-1/4 top-1 min-w-4 rounded-full bg-danger px-1 text-center text-[10px] font-semibold text-white">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
     </NavLink>
   )
 }
@@ -75,6 +81,7 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
 export function AppShell() {
   const { t } = useTranslation()
   const [moreOpen, setMoreOpen] = useState(false)
+  const alertBadge = useAlertBadge()
 
   // Send queued daily logs on start, when the network returns and periodically (SPEC 15.7).
   useEffect(() => startAutoSync(), [])
@@ -122,7 +129,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-background md:hidden"
       >
         {primaryNav.map((item) => (
-          <BottomNavLink key={item.to} item={item} />
+          <BottomNavLink key={item.to} item={item} badge={item.to === '/alerts' ? alertBadge : 0} />
         ))}
         <button
           type="button"

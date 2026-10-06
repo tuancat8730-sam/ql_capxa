@@ -80,5 +80,14 @@ Decisions: no Terraform; `package_access` table for sensitive docs; git remote a
 - Tests: api 824 (98% coverage), web 154.
 - Notes: risk owner has no picker in the UI (only admins can list users); owners can be set through the API. Issue search is plain `ILIKE` (no diacritic folding) unlike documents.
 
-## M7–M8
-Not started.
+## M7 – Bộ máy cảnh báo và dashboard
+- [x] `alerts` + `packages.consulting_role` + `payments.due_date` + migration 0007 (up/down/up verified, `alembic check` clean)
+- [x] 12 quy tắc SPEC 7.1 là hàm thuần trong `services/alert_rules.py` (100% coverage, biên ±1 ngày/điểm cho từng quy tắc); quy tắc bảo lãnh dùng lại `guarantee_rules.py`; sức khỏe gói 7.3 (`package_health`) ghi lại vào `packages.health` + lý do
+- [x] engine (`alert_engine.py`): khóa chống trùng `RULE:entity:level`, tự đóng khi điều kiện hết, mở lại khi quay lại, mức tăng lên thì hết trạng thái "đã xác nhận", hoãn tối đa 7 ngày và hết hạn hoãn thì mở lại, critical không giữ được trạng thái hoãn
+- [x] email: `Mailer` (SMTP/mailpit, SES, memory), critical gửi một lần (`notified_at`, gửi lỗi thì lần sau thử lại), tóm tắt 08:00 cho giám đốc và người được gán; worker chạy hằng giờ + 08:00; ghi dữ liệu xong thì chạy lại nền (gộp các lần ghi liên tiếp)
+- [x] API: `/alerts` (list, get, ack, snooze, assign, refresh) và `/dashboard/summary|cashflow|top-risks|alerts|documents` (+ `timeline` đã có từ M5)
+- [x] Web: `/` dashboard 8 khối (mỗi khối một endpoint, khối lỗi không làm trắng trang), `/alerts` (chip mức độ, vuốt trái xác nhận / vuốt phải hoãn có nút thay thế, hoãn kèm lý do, giao cho tôi), số cảnh báo trên thanh dưới
+- AC check: seed cho `ADVANCE_GUARANTEE_SHORT` Gói 05 (critical), `GUARANTEE_MISSING` Gói 04 và 05, `CROSS_PKG_DEPENDENCY` Gói 07, Gói 03 `grey` "Chưa có hợp đồng"; chạy lại không tạo trùng; sửa dữ liệu thì cảnh báo tự đóng; dashboard 5 khối tải < 2 giây với dữ liệu seed.
+- Tests: api 897 (97% coverage), web 183.
+- Deviations / notes: (1) cờ nhất quán Gói 02 (7.5) vẫn nằm ở trả lời hợp đồng, không phải cảnh báo vì SPEC 7.1 không có mã tương ứng. (2) Seed còn sinh thêm `CONTRACT_ENDING`, `DOC_MISSING` đúng quy tắc, danh sách 14.7 là tập con. (3) `CROSS_PKG_DEPENDENCY`: xem OPEN_QUESTIONS 25. (4) `PAYMENT_DUE` cần `payments.due_date` (cột mới, chưa có form nhập). (5) Chưa có xuất Excel danh sách cảnh báo (M8). (6) Chạy engine mỗi giờ (SPEC 4.10) thay vì chỉ 06:00/13:00 của mục 7.
+

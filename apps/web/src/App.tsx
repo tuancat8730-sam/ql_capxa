@@ -8,6 +8,8 @@ import { LoginPage } from './features/auth/LoginPage'
 import { RequireAuth } from './features/auth/RequireAuth'
 
 // Route-level code splitting keeps the first load small on slow 4G (SPEC 15.1, 15.10).
+const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
+const AlertsPage = lazy(() => import('./features/alerts/AlertsPage').then((m) => ({ default: m.AlertsPage })))
 const UsersPage = lazy(() => import('./features/admin/UsersPage').then((m) => ({ default: m.UsersPage })))
 const ProfilePage = lazy(() => import('./features/auth/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const DocumentsPage = lazy(() => import('./features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
@@ -34,7 +36,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests'])
+const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests'])
 
 export default function App() {
   const { t } = useTranslation()
@@ -50,6 +52,8 @@ export default function App() {
             .map((item) => (
               <Route key={item.to} path={item.to} element={<PlaceholderPage titleKey={item.labelKey} />} />
             ))}
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/packages" element={<PackagesPage />} />
           <Route path="/packages/:id" element={<PackageDetailPage />} />
