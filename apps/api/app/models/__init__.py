@@ -2,6 +2,7 @@ from app.models.alert import Alert
 from app.models.audit import AuditLog
 from app.models.base import Base, IdMixin, SoftDeleteMixin, TimestampMixin
 from app.models.contract import Contract, ContractAmendment, ContractItem, ContractParty
+from app.models.doc_number import OutgoingDocNumber
 from app.models.document import ChecklistItem, ChecklistTemplate, Document, PackageAccess
 from app.models.finance import DisbursementPlan, Guarantee, Payment
 from app.models.progress import ProgressLog, StagePlan, Task
@@ -30,6 +31,7 @@ __all__ = [
     "IssueEvent",
     "Meeting",
     "Organization",
+    "OutgoingDocNumber",
     "Package",
     "PackageAccess",
     "Payment",

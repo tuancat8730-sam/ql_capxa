@@ -10,6 +10,7 @@ from app.routers import (
     checklists,
     contracts,
     dashboard,
+    doc_numbers,
     documents,
     exports,
     finance,
@@ -88,6 +89,7 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
     api.include_router(alerts.router)
     api.include_router(dashboard.router)
     api.include_router(search.router)
+    api.include_router(doc_numbers.router)
     app.include_router(api)
     return app
 

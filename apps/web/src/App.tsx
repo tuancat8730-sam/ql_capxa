@@ -10,6 +10,7 @@ import { RequireAuth } from './features/auth/RequireAuth'
 // Route-level code splitting keeps the first load small on slow 4G (SPEC 15.1, 15.10).
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const AlertsPage = lazy(() => import('./features/alerts/AlertsPage').then((m) => ({ default: m.AlertsPage })))
+const OutgoingDocsPage = lazy(() => import('./features/docnumbers/OutgoingDocsPage').then((m) => ({ default: m.OutgoingDocsPage })))
 const UsersPage = lazy(() => import('./features/admin/UsersPage').then((m) => ({ default: m.UsersPage })))
 const ProfilePage = lazy(() => import('./features/auth/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const DocumentsPage = lazy(() => import('./features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
@@ -36,7 +37,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests'])
+const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests', '/outgoing-docs'])
 
 export default function App() {
   const { t } = useTranslation()
@@ -66,6 +67,7 @@ export default function App() {
           <Route path="/issues" element={<IssuesPage />} />
           <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/change-requests" element={<ChangeRequestsPage />} />
+          <Route path="/outgoing-docs" element={<OutgoingDocsPage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="/admin/users" element={<UsersPage />} />
           </Route>
