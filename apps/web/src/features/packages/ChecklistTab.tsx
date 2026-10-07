@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 import { useAuth } from '@/features/auth/AuthContext'
 import { primaryButton } from '@/features/auth/LoginPage'
+import { PreviewDialog } from '@/features/documents/PreviewDialog'
 import { UploadSheet } from '@/features/documents/UploadSheet'
 import type { Checklist, ChecklistItem } from '@/features/documents/types'
 import { api } from '@/lib/api'
@@ -23,6 +24,7 @@ export function ChecklistTab({ packageId }: { packageId: string }) {
   const queryClient = useQueryClient()
   const canWrite = can(user?.role, 'document', 'W')
   const [uploadFor, setUploadFor] = useState<ChecklistItem | null>(null)
+  const [viewing, setViewing] = useState<{ id: string; title: string } | null>(null)
 
   const { data, isPending, isError } = useQuery({
     queryKey: ['checklist', packageId],
@@ -109,6 +111,19 @@ export function ChecklistTab({ packageId }: { packageId: string }) {
                     {i.document_restricted ? <span>🔒 {t('documents.restricted')}</span> : i.document_title && <span>📎 {i.document_title}</span>}
                     {i.note && <span>{i.note}</span>}
                   </div>
+                  {/* a file that is uploaded and not hidden from this user can be opened right here */}
+                  {i.document_id && !i.document_restricted && (
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="min-h-11 rounded-md border border-border px-3"
+                        aria-label={`${t('checklist.view')}: ${i.title}`}
+                        onClick={() => setViewing({ id: i.document_id as string, title: i.document_title ?? i.title })}
+                      >
+                        {t('checklist.view')}
+                      </button>
+                    </div>
+                  )}
                   {canWrite && (
                     <div className="flex flex-wrap gap-2">
                       {i.status === 'missing' && (
@@ -133,6 +148,8 @@ export function ChecklistTab({ packageId }: { packageId: string }) {
           </ul>
         </section>
       ))}
+
+      {viewing && <PreviewDialog doc={viewing} onClose={() => setViewing(null)} />}
 
       {uploadFor && (
         <UploadSheet packageId={packageId} docType={uploadFor.doc_type} onClose={() => setUploadFor(null)} />

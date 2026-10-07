@@ -315,6 +315,7 @@ export const vi = {
     due: 'Hạn',
     optional: 'Không bắt buộc',
     upload: 'Tải lên',
+    view: 'Xem tài liệu',
     markNa: 'Không áp dụng',
     undo: 'Hoàn tác',
     create: 'Tạo danh mục hồ sơ',

@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import type { Download, DocumentItem } from './types'
 
 interface PreviewDialogProps {
-  doc: DocumentItem
+  doc: Pick<DocumentItem, 'id' | 'title'>
   onClose: () => void
 }
 

@@ -342,6 +342,8 @@ describe('ChecklistTab', () => {
       if (url.endsWith('/auth/me')) return Promise.resolve(res(200, user(role)))
       if (url === '/api/v1/packages/p4/checklist') return Promise.resolve(res(200, checklist))
       if (url === '/api/v1/checklist-items/i3' && init?.method === 'PATCH') return Promise.resolve(res(200, {}))
+      if (url === '/api/v1/documents/d1/download-url?inline=true')
+        return Promise.resolve(res(200, { url: 'https://storage.test/d1', expires_in: 300, file_name: 'hd.pdf', mime_type: 'application/pdf', inline: true }))
       return Promise.resolve(res(404, { error: { code: 'not_found', message: 'x' } }))
     })
 
@@ -385,5 +387,39 @@ describe('ChecklistTab', () => {
     const missing = screen.getByText('Bảo lãnh thực hiện hợp đồng').closest('li')!
     await user.click(within(missing).getByRole('button', { name: 'Tải lên' }))
     expect(await screen.findByRole('dialog', { name: 'Tải lên' })).toBeInTheDocument()
+  })
+
+  it('offers "Xem tài liệu" only for items whose file is uploaded and visible, and opens the preview', async () => {
+    serve('viewer') // even someone who cannot upload may view
+    wrap()
+    const user = userEvent.setup()
+    const received = (await screen.findByText('Hợp đồng')).closest('li')!
+    expect(within(received).getByRole('button', { name: /Xem tài liệu/ })).toBeInTheDocument()
+    // missing items have nothing to view
+    const missing = screen.getByText('Bảo lãnh thực hiện hợp đồng').closest('li')!
+    expect(within(missing).queryByRole('button', { name: /Xem tài liệu/ })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /Xem tài liệu/ })).toHaveLength(1)
+
+    await user.click(within(received).getByRole('button', { name: /Xem tài liệu/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'Hợp đồng số 71' })
+    expect(await within(dialog).findByTitle('Hợp đồng số 71')).toHaveAttribute('src', 'https://storage.test/d1')
+    await user.click(within(dialog).getByRole('button', { name: 'Đóng' }))
+    expect(screen.queryByRole('dialog', { name: 'Hợp đồng số 71' })).not.toBeInTheDocument()
+  })
+
+  it('never offers to view a file hidden from this user', async () => {
+    const hidden: Checklist = {
+      ...checklist,
+      items: [{ ...checklist.items[0], document_title: null, document_restricted: true }],
+    }
+    fetchMock.mockImplementation((url: string) => {
+      if (url.endsWith('/auth/refresh')) return Promise.resolve(res(200, { access_token: 't' }))
+      if (url.endsWith('/auth/me')) return Promise.resolve(res(200, user('viewer')))
+      if (url === '/api/v1/packages/p4/checklist') return Promise.resolve(res(200, hidden))
+      return Promise.resolve(res(404, { error: { code: 'not_found', message: 'x' } }))
+    })
+    wrap()
+    expect(await screen.findByText(/Tài liệu hạn chế/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Xem tài liệu/ })).not.toBeInTheDocument()
   })
 })
