@@ -24,7 +24,9 @@ from app.models import (
     Holiday,
     Issue,
     Package,
+    PackagePlan,
     Payment,
+    PlanStep,
     ProgressLog,
     StagePlan,
 )
@@ -151,6 +153,35 @@ async def _payment_candidates(
     return out
 
 
+async def _plan_step_candidates(
+    session: AsyncSession, package: Package, today: date
+) -> list[Candidate]:
+    steps = (
+        (
+            await session.execute(
+                select(PlanStep)
+                .join(PackagePlan, PackagePlan.id == PlanStep.plan_id)
+                .where(PackagePlan.package_id == package.id, PlanStep.status != "done")
+            )
+        )
+        .scalars()
+        .all()
+    )
+    out: list[Candidate] = []
+    for step in steps:
+        out += rules.plan_step_overdue(
+            step_id=str(step.id),
+            package_id=str(package.id),
+            package_label=package_label(package),
+            step_no=step.step_no,
+            content=step.content,
+            end_date=step.end_date,
+            status=step.status,
+            today=today,
+        )
+    return out
+
+
 async def collect_candidates(
     session: AsyncSession, now: datetime | None = None
 ) -> tuple[list[Candidate], dict[str, Decimal], set[str]]:
@@ -240,6 +271,8 @@ async def collect_candidates(
             candidates += rules.progress_behind(
                 package_id=pid, package_label=label, actual=package.progress_pct, planned=planned
             )
+
+        candidates += await _plan_step_candidates(session, package, today)
 
         candidates += rules.doc_missing(
             package_id=pid,

@@ -21,6 +21,7 @@ dependencies = [
   "python-docx>=1.2.0",
   "openpyxl>=3.1.5",
   "google-cloud-storage>=3.16.0",
+  "defusedxml>=0.7.1",
 ]
 
 [dependency-groups]
@@ -51,7 +52,7 @@ strict = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["apscheduler.*", "jose.*", "boto3.*", "botocore.*", "openpyxl.*", "docx.*", "pypdf.*", "moto.*", "google.*"]
+module = ["apscheduler.*", "jose.*", "boto3.*", "botocore.*", "openpyxl.*", "docx.*", "pypdf.*", "moto.*", "google.*", "defusedxml.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

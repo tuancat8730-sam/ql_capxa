@@ -115,3 +115,13 @@ Quyết định: Cloud Run, Firebase Hosting cho web, Cloud SQL, Cloud Storage c
 - [x] `docs/OPERATIONS_GCP.md`
 - [ ] Phase 2 – email: hoãn theo yêu cầu (`MAIL_BACKEND=memory` trên GCP; `SmtpMailer` cần đăng nhập và STARTTLS khi chọn nhà cung cấp)
 - [ ] Phase 6 – dựng dev trên GCP thật, thử tải 50 MB lên GCS bằng trình duyệt, kiểm tra khôi phục; sau đó xóa `infra/terraform`, `SesMailer`, `deploy.yml`, `OPERATIONS.md` (AWS)
+
+## Tab "Kế hoạch" của từng gói thầu
+Nguồn: kế hoạch triển khai bàn giao và lắp đặt của nhà thầu (Gói 04: `.docx`, Gói 05: `.doc`).
+- [x] Đọc tệp: `.docx` (python-docx) và `.doc` cũ (qua `antiword`, có trong ảnh Docker) thành thông tin chung (căn cứ, thời gian hợp đồng và triển khai, địa điểm, người ký), bảng thiết bị (số lượng, chia cho nhà thầu, thông số) và bảng các bước (3 giai đoạn, ngày hoặc "dự kiến", thành phần tham gia). Ngày không đọc được thì để trống và báo, không đoán; từ chối tệp quá 5 MB, nén bất thường, có macro, không phải Word
+- [x] Dữ liệu: `package_plans`, `plan_items`, `plan_steps` (migration 0009, cũng mở rộng ràng buộc loại cảnh báo); mỗi gói một kế hoạch hiện hành; tải tệp mới thì thay thế, bước trùng nội dung giữ trạng thái đã cập nhật
+- [x] API: `GET /packages/{id}/plan`, `POST /packages/{id}/plan/import` (xem trước rồi `commit=true`), `DELETE`, `PATCH /plan-steps/{id}`; quyền tải và xóa: admin, giám đốc, đấu thầu; cập nhật bước: admin, giám đốc, kỹ thuật, hiện trường; ghi audit
+- [x] Sai khác tự phát hiện (hiển thị, không chặn): bước kết thúc sau hạn hợp đồng, ngoài thời gian triển khai, tổng số lượng lệch, chia nhà thầu lệch, bước thiếu thời gian
+- [x] Cảnh báo `PLAN_STEP_OVERDUE` (engine, sức khỏe gói, danh sách cảnh báo, xuất Excel) và mốc "Kế hoạch" trên Dashboard trong 30 ngày tới
+- [x] Giao diện: tab "Kế hoạch" (thông tin chung, tiến độ, các bước theo giai đoạn có trạng thái và cập nhật một chạm, bảng thiết bị, hộp tải tệp có xem trước), Playwright luồng thứ 6
+- Kết quả đọc thử trên hai tệp thật: Gói 04 = 10 hạng mục (tổng 846) và 10 bước; Gói 05 = 9 hạng mục (tổng 751) và 11 bước, không có sai khác.

@@ -16,6 +16,9 @@ CONTRACT_ENDING_CRITICAL_DAYS = 5
 PROGRESS_WARN_POINTS = Decimal(10)
 PROGRESS_CRIT_POINTS = Decimal(25)
 PAYMENT_DUE_DAYS = 5
+# A delivery-plan step that is still open after its end date: warning, critical after this many
+# days late (an assumption of the project team, see OPEN_QUESTIONS).
+PLAN_STEP_CRITICAL_DAYS = 5
 # An open supply package without a contract has no end date yet; a supervision contract that
 # ends within this horizon cannot be confirmed to cover it (SPEC 14.7 expects the alert).
 UNSIGNED_SUPPLY_HORIZON_DAYS = 90
@@ -467,6 +470,44 @@ def payment_due(
             f"Đợt thanh toán {when} (hạn {due_date:%d/%m/%Y}), chưa đủ điều kiện",
             package_id=package_id,
             due_date=due_date,
+        )
+    ]
+
+
+# --- PLAN_STEP_OVERDUE -------------------------------------------------------------------------
+
+
+def plan_step_overdue(
+    *,
+    step_id: str,
+    package_id: str,
+    package_label: str,
+    step_no: int,
+    content: str,
+    end_date: date | None,
+    status: str,
+    today: date,
+) -> list[Candidate]:
+    """A step of the package's delivery plan whose end date has passed and is not done.
+
+    A step without an end date is never late.
+    """
+    if end_date is None or status == "done" or end_date >= today:
+        return []
+    late = (today - end_date).days
+    first = content.strip().splitlines()[0].lstrip("-– ").strip() if content.strip() else ""
+    if len(first) > 110:
+        first = first[:107] + "..."
+    return [
+        Candidate(
+            "PLAN_STEP_OVERDUE",
+            "critical" if late > PLAN_STEP_CRITICAL_DAYS else "warning",
+            "plan_step",
+            step_id,
+            f"{package_label}: bước {step_no} của kế hoạch triển khai quá hạn",
+            f"{first} - quá hạn {late} ngày (hạn {end_date:%d/%m/%Y})",
+            package_id=package_id,
+            due_date=end_date,
         )
     ]
 

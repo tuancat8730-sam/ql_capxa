@@ -25,7 +25,9 @@ from app.models import (
     Issue,
     Organization,
     Package,
+    PackagePlan,
     Payment,
+    PlanStep,
     Risk,
     StagePlan,
     User,
@@ -178,6 +180,16 @@ async def _milestones(session: AsyncSession, today: date) -> list[Milestone]:
     )
     for p, package_id in payments.all():
         add(p.due_date, "payment_due", "Hạn đợt thanh toán", package_id, "payment", p.id)
+
+    plan_steps = await session.execute(
+        select(PlanStep, PackagePlan.package_id)
+        .join(PackagePlan, PackagePlan.id == PlanStep.plan_id)
+        .where(PlanStep.status != "done", PlanStep.end_date.is_not(None))
+    )
+    for ps, package_id in plan_steps.all():
+        first = ps.content.strip().splitlines()[0].lstrip("-– ").strip()[:80]
+        title = f"Bước {ps.step_no} kế hoạch: {first}"
+        add(ps.end_date, "plan_step", title, package_id, "plan_step", ps.id)
 
     for offset in range(MILESTONE_DAYS + 1):
         day = today + timedelta(days=offset)

@@ -13,11 +13,12 @@ import { RisksIssuesTab } from './RisksIssuesTab'
 import { ChecklistTab } from './ChecklistTab'
 import { ContractGuarantees, ContractPayments } from './ContractFinance'
 import { ImportItems } from './ImportItems'
+import { PlanTab } from '@/features/plan/PlanTab'
 import type { ContractDetail, Issue, PackageItem, PackageOverview } from './types'
 
-const TABS = ['overview', 'contracts', 'progress', 'documents', 'risks', 'payments', 'log'] as const
+const TABS = ['overview', 'contracts', 'progress', 'plan', 'documents', 'risks', 'payments', 'log'] as const
 type Tab = (typeof TABS)[number]
-const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments', 'documents', 'progress', 'risks']
+const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments', 'documents', 'progress', 'plan', 'risks']
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -279,6 +280,7 @@ export function PackageDetailPage() {
             contracts.map((c) => <ContractPayments key={c.id} contractId={c.id} />)
           ))}
         {tab === 'progress' && <StagesTab packageId={pkg.id} />}
+        {tab === 'plan' && <PlanTab packageId={pkg.id} />}
         {tab === 'risks' && <RisksIssuesTab packageId={pkg.id} />}
         {tab === 'documents' && (
           <div className="space-y-6">

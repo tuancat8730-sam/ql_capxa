@@ -25,6 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+      # reads the old binary .doc plan documents (tests that need it skip when it is missing)
+      - run: sudo apt-get install -y antiword
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run mypy app

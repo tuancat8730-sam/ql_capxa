@@ -45,6 +45,7 @@ describe('alertLink', () => {
     ['GUARANTEE_EXPIRING', '/packages/p?tab=contracts'],
     ['ADVANCE_GUARANTEE_SHORT', '/packages/p?tab=contracts'],
     ['PAYMENT_DUE', '/packages/p?tab=payments'],
+    ['PLAN_STEP_OVERDUE', '/packages/p?tab=plan'],
     ['STAGE_DELAYED', '/packages/p?tab=progress'],
     ['PROGRESS_BEHIND', '/packages/p?tab=progress'],
     ['DOC_MISSING', '/packages/p?tab=documents'],

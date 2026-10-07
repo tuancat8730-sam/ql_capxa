@@ -40,3 +40,9 @@ Ghi theo SPEC mục 0.3: chỗ mơ hồ → chọn phương án mặc định, g
 
 27. **`CROSS_PKG_DEPENDENCY` khi gói cung cấp chưa có hợp đồng.** SPEC 14.7 muốn cảnh báo này ngay sau seed, nhưng HĐ Gói 04 và 05 kết thúc 12–13/11/2026, trước ngày TVGS (~13/12/2026). Gói 03 chưa ký nên chưa có ngày kết thúc. Quy tắc đang coi gói cung cấp còn mở mà chưa có hợp đồng là "chưa xác nhận được TVGS bao phủ" và báo nếu hợp đồng TVGS kết thúc trong 90 ngày tới (`UNSIGNED_SUPPLY_HORIZON_DAYS`). Ngày 13/12/2026 của HĐ 73 là ước tính từ SPEC 14.6, cần xác nhận; 90 ngày là giả định cần Giám đốc QLDA duyệt.
 28. **Vai trò hợp đồng tư vấn** (`consulting_role`): Gói 06 = TVQLDA, Gói 07 = TVGS, Gói 08 = khác. Gói 08 là gì (kiểm toán?) SPEC chưa nói.
+
+## Phát sinh ở tab Kế hoạch (kế hoạch triển khai của từng gói)
+29. **Ngưỡng cảnh báo bước kế hoạch quá hạn** (`PLAN_STEP_OVERDUE`) do đội dự án chưa chốt: đang đặt cảnh báo `warning` từ ngày thứ 1 quá hạn, `critical` khi trễ quá 5 ngày (`PLAN_STEP_CRITICAL_DAYS`). Bước không có ngày kết thúc không bao giờ tính trễ.
+30. **Kế hoạch Gói 04 tự mâu thuẫn:** hợp đồng kết thúc 13/11/2026 và mục "thời gian triển khai" cũng ghi 05–13/11, nhưng 7 trong 10 bước kết thúc sau 13/11 (muộn nhất 30/11/2026). Hệ thống chỉ hiển thị cảnh báo; cần Giám đốc QLDA xác nhận với nhà thầu (gia hạn hợp đồng hay rút ngắn kế hoạch).
+31. **Bước 10 của Gói 04 không có thời gian** (bàn giao hồ sơ, nghiệm thu hoàn thành): hiện "Chưa có thời gian", không tính trễ cho tới khi có ngày.
+32. **Tệp `.doc` cũ** đọc bằng chương trình `antiword` trong ảnh Docker. Đó là mã C cũ, chỉ cho người có quyền tải kế hoạch (admin, giám đốc, đấu thầu) dùng, chạy trong tiến trình con có giới hạn thời gian 30 giây; nếu muốn bỏ hẳn rủi ro này, yêu cầu nhà thầu gửi `.docx`.

@@ -14,6 +14,8 @@ export function alertLink(a: Pick<Alert, 'alert_type' | 'entity_type' | 'package
     case 'STAGE_DELAYED':
     case 'PROGRESS_BEHIND':
       return pkg ? `${pkg}?tab=progress` : '/progress'
+    case 'PLAN_STEP_OVERDUE':
+      return pkg ? `${pkg}?tab=plan` : '/progress'
     case 'DOC_MISSING':
       return pkg ? `${pkg}?tab=documents` : '/documents'
     case 'ISSUE_SLA':

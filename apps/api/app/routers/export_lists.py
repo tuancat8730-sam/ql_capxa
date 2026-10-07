@@ -90,6 +90,7 @@ ALERT_TYPE = {
     "REPORT_DUE": "Báo cáo đến hạn",
     "CROSS_PKG_DEPENDENCY": "Phụ thuộc giữa các gói",
     "PAYMENT_DUE": "Thanh toán đến hạn",
+    "PLAN_STEP_OVERDUE": "Bước kế hoạch quá hạn",
 }
 STAGE = {
     "S1_START": "Khởi động",

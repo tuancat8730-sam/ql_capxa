@@ -20,6 +20,7 @@ from app.routers import (
     issues,
     meetings,
     packages,
+    plans,
     progress,
     project,
     risks,
@@ -97,6 +98,7 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
     api.include_router(exports.router)
     api.include_router(export_lists.router)
     api.include_router(imports.router)
+    api.include_router(plans.router)
     api.include_router(risks.router)
     api.include_router(issues.router)
     api.include_router(meetings.router)
