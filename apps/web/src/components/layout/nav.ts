@@ -6,6 +6,7 @@ import {
   FileText,
   FolderOpen,
   GitPullRequest,
+  History,
   Home,
   type LucideIcon,
   MessageSquare,
@@ -42,6 +43,8 @@ export const moreNav: NavItem[] = [
   { to: '/change-requests', labelKey: 'nav.changeRequests', icon: GitPullRequest },
   { to: '/outgoing-docs', labelKey: 'nav.outgoingDocs', icon: Send },
   { to: '/admin/users', labelKey: 'nav.admin', icon: Settings },
+  { to: '/admin/audit', labelKey: 'nav.audit', icon: History },
+  { to: '/admin/settings', labelKey: 'nav.settings', icon: Settings },
   { to: '/profile', labelKey: 'nav.profile', icon: CalendarClock },
 ]
 

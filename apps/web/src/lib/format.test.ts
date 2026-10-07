@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDate, formatMoney, formatMoneyShort } from './format'
+import { formatDate, formatDateTime, formatMoney, formatMoneyShort } from './format'
 
 describe('formatMoney', () => {
   it('groups thousands with dots and appends đ', () => {
@@ -36,5 +36,16 @@ describe('formatDate', () => {
   })
   it('placeholder for empty', () => {
     expect(formatDate(null)).toBe('Chưa có dữ liệu')
+  })
+})
+
+describe('formatDateTime', () => {
+  it('always shows Vietnam time (UTC+7)', () => {
+    expect(formatDateTime('2026-11-05T03:00:00Z')).toBe('05/11/2026 10:00:00')
+    expect(formatDateTime('2026-11-05T20:30:15Z')).toBe('06/11/2026 03:30:15') // next day in Vietnam
+  })
+  it('placeholder for empty or invalid input', () => {
+    expect(formatDateTime(null)).toBe('Chưa có dữ liệu')
+    expect(formatDateTime('nope')).toBe('Chưa có dữ liệu')
   })
 })

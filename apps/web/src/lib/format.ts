@@ -32,3 +32,23 @@ export function formatDate(value: Maybe<string>): string {
   const d = dayjs(value)
   return d.isValid() ? d.format('DD/MM/YYYY') : NO_DATA
 }
+
+const VN_TIME = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+})
+
+/** `dd/MM/yyyy HH:mm:ss` in Vietnam time, whatever the time zone of the device is. */
+export function formatDateTime(value: Maybe<string>): string {
+  if (!value) return NO_DATA
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return NO_DATA
+  const p = Object.fromEntries(VN_TIME.formatToParts(d).map((x) => [x.type, x.value]))
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}:${p.second}`
+}

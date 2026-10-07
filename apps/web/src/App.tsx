@@ -11,6 +11,8 @@ import { RequireAuth } from './features/auth/RequireAuth'
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const AlertsPage = lazy(() => import('./features/alerts/AlertsPage').then((m) => ({ default: m.AlertsPage })))
 const OutgoingDocsPage = lazy(() => import('./features/docnumbers/OutgoingDocsPage').then((m) => ({ default: m.OutgoingDocsPage })))
+const AuditPage = lazy(() => import('./features/audit/AuditPage').then((m) => ({ default: m.AuditPage })))
+const SettingsPage = lazy(() => import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })))
 const UsersPage = lazy(() => import('./features/admin/UsersPage').then((m) => ({ default: m.UsersPage })))
 const ProfilePage = lazy(() => import('./features/auth/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const DocumentsPage = lazy(() => import('./features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
@@ -37,7 +39,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests', '/outgoing-docs'])
+const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests', '/outgoing-docs', '/admin/audit', '/admin/settings'])
 
 export default function App() {
   const { t } = useTranslation()
@@ -70,6 +72,10 @@ export default function App() {
           <Route path="/outgoing-docs" element={<OutgoingDocsPage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="/admin/users" element={<UsersPage />} />
+            <Route path="/admin/settings" element={<SettingsPage />} />
+          </Route>
+          <Route element={<RequireAuth roles={['admin', 'director']} />}>
+            <Route path="/admin/audit" element={<AuditPage />} />
           </Route>
         </Route>
       </Route>
