@@ -45,4 +45,4 @@ boto3.client("s3", endpoint_url="$S3_URL", aws_access_key_id="test", aws_secret_
     CreateBucketConfiguration={"LocationConstraint": "ap-southeast-1"})
 PY
 
-exec uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+exec uv run uvicorn app.main:app --host 127.0.0.1 --port "${E2E_API_PORT:-8000}"

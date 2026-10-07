@@ -7,10 +7,16 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "postgresql+asyncpg://qlda:qlda@db:5432/qlda"
+    # Connections each process may hold: instances x (pool + overflow) must stay under the
+    # database's max_connections (a small Cloud SQL tier allows only a few dozen).
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
     jwt_secret: str = "change-me"
     jwt_access_minutes: int = 15
     jwt_refresh_days: int = 7
     cookie_secure: bool = True
+    # Firebase Hosting only forwards a cookie called `__session` to Cloud Run: set that name there.
+    refresh_cookie_name: str = "refresh_token"
     # Where documents live: `gcs` (Google Cloud Storage, production), `s3` (S3-compatible: local
     # docker compose and the e2e run use a moto server).
     storage_backend: str = "s3"

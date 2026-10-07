@@ -1,7 +1,6 @@
 import uuid
-from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Request, Response
+from fastapi import APIRouter, Request, Response
 
 from app.core.config import get_settings
 from app.core.deps import CurrentUserAllowPwChange, SessionDep
@@ -14,13 +13,11 @@ from app.services.auth import authenticate
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-REFRESH_COOKIE = "refresh_token"
-
 
 def _set_refresh_cookie(response: Response, user: User) -> None:
     settings = get_settings()
     response.set_cookie(
-        REFRESH_COOKIE,
+        settings.refresh_cookie_name,
         create_token(str(user.id), "refresh", token_version=user.token_version),
         max_age=settings.jwt_refresh_days * 86400,
         httponly=True,
@@ -47,10 +44,8 @@ async def login(
 
 
 @router.post("/refresh", response_model=TokenOut)
-async def refresh(
-    session: SessionDep,
-    refresh_token: Annotated[str | None, Cookie()] = None,
-) -> TokenOut:
+async def refresh(request: Request, session: SessionDep) -> TokenOut:
+    refresh_token = request.cookies.get(get_settings().refresh_cookie_name)
     if not refresh_token:
         raise AppError(401, "unauthorized", "Chưa đăng nhập")
     claims = decode_token(refresh_token, "refresh")
@@ -65,7 +60,7 @@ async def refresh(
 
 @router.post("/logout", status_code=204)
 async def logout(response: Response) -> None:
-    response.delete_cookie(REFRESH_COOKIE, path="/api/v1/auth")
+    response.delete_cookie(get_settings().refresh_cookie_name, path="/api/v1/auth")
 
 
 @router.get("/me", response_model=UserOut)
@@ -96,4 +91,4 @@ async def change_password(
         request=request,
     )
     await session.commit()
-    response.delete_cookie(REFRESH_COOKIE, path="/api/v1/auth")
+    response.delete_cookie(get_settings().refresh_cookie_name, path="/api/v1/auth")

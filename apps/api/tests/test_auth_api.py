@@ -212,3 +212,35 @@ async def test_login_is_audited(client: httpx.AsyncClient, session: AsyncSession
     )
     refreshed = (await session.execute(select(User).where(User.id == user.id))).scalar_one()
     assert refreshed.last_login_at is not None
+
+
+async def test_the_refresh_cookie_name_is_configurable(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Firebase Hosting forwards only a cookie named `__session` to Cloud Run."""
+    import httpx
+
+    from app.core.config import get_settings
+    from app.main import create_app
+    from tests.conftest import make_user
+
+    monkeypatch.setenv("REFRESH_COOKIE_NAME", "__session")
+    get_settings.cache_clear()
+    try:
+        from app.core import db
+
+        async with db.get_sessionmaker()() as s:
+            await make_user(s, "cost")
+        transport = httpx.ASGITransport(app=create_app())
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
+            resp = await login(c, "cost@example.test")
+            cookie = resp.headers["set-cookie"]
+            assert cookie.startswith("__session=") and "refresh_token=" not in cookie
+            assert "HttpOnly" in cookie and "Path=/api/v1/auth" in cookie
+            assert (await c.post("/api/v1/auth/refresh")).status_code == 200  # read back by name
+            c.cookies.clear()
+            c.cookies.set("refresh_token", "old-name")  # the default name no longer counts
+            assert (await c.post("/api/v1/auth/refresh")).status_code == 401
+            out = await c.post("/api/v1/auth/logout")
+            assert out.status_code == 204 and "__session=" in out.headers["set-cookie"]
+    finally:
+        monkeypatch.undo()
+        get_settings.cache_clear()
