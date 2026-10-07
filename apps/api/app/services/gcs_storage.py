@@ -24,6 +24,8 @@ from app.services.storage import (
     content_disposition,
 )
 
+CLOUD_PLATFORM_SCOPE = "https://www.googleapis.com/auth/cloud-platform"
+
 
 class GcsStorage:
     def __init__(
@@ -36,7 +38,8 @@ class GcsStorage:
     ) -> None:
         self.bucket_name = bucket
         if client is None:
-            credentials, default_project = google.auth.default()
+            # cloud-platform: the default token cannot call IAM signBlob (insufficient scopes)
+            credentials, default_project = google.auth.default(scopes=[CLOUD_PLATFORM_SCOPE])
             client = storage.Client(project=project or default_project, credentials=credentials)
         self._client = client
         self._bucket = client.bucket(bucket)

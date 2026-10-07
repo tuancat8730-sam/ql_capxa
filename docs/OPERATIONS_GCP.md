@@ -107,15 +107,24 @@ Số kết nối: mỗi tiến trình giữ tối đa `db_pool_size + db_max_ove
 | Mật khẩu CSDL | `terraform apply -replace=random_password.db` (cập nhật cả người dùng Cloud SQL và `DATABASE_URL`), rồi triển khai lại |
 | Người dùng ứng dụng | `/admin/users` → *Cấp lại mật khẩu* |
 
-## 7. Giới hạn đã biết (chưa kiểm chứng trên GCP thật)
+## 7. Môi trường dev đã dựng (project `qlda-dev-lamdong`)
 
-- Terraform qua `terraform validate` và `fmt`, **chưa `apply` vào project thật**.
-- `GcsStorage` được kiểm bằng khóa ký thật ở máy cá nhân và client giả; **chưa chạy với bucket GCS thật**: lần dựng dev đầu tiên hãy thử tải lên một tệp 50 MB từ trình duyệt, tải xuống, xóa, và kiểm quyền `signBlob`. Nếu `signBlob` bị từ chối, kiểm `roles/iam.serviceAccountTokenCreator` trên chính service account `qlda-<env>-app` và API IAM Credentials đã bật.
-- CSP của Firebase Hosting đã thử với bản build trong Chromium (7 trang, không vi phạm); chưa thử tải lên thật vì cần GCS (`connect-src` cho phép `https://storage.googleapis.com`).
-- Chính sách tổ chức "Domain restricted sharing" có thể chặn `allUsers` gọi Cloud Run (Firebase Hosting cần quyền này). Nếu `terraform apply` lỗi ở `api_public`, nhờ quản trị tổ chức cho phép ngoại lệ cho project này.
+Dựng ngày 07/10/2026 bằng tài khoản quản trị của chủ dự án; billing account `01033E-2B61B3-86FCE5` (billing account kia đã hết hạn mức số project).
+
+- Web: https://qlda-dev-lamdong-web.web.app (API qua `/api/**`), Cloud Run `api` và `worker`, Cloud SQL, bucket `qlda-dev-lamdong-documents`.
+- Kiểm thử đầu cuối qua địa chỉ Firebase đã đạt: đăng nhập (cookie `__session`), làm mới phiên, xin URL ký, CORS preflight từ web, tải 5 MB lên GCS bằng URL ký, xác nhận (sha256 phía server khớp), tải xuống đúng từng byte, xóa.
+- Ba lỗi gặp khi dựng thật (đã sửa trong mã): người dùng cần `user_project_override` và `billing_project` cho provider Firebase; token mặc định của Cloud Run thiếu scope cho `signBlob` (nay yêu cầu `cloud-platform`); khi truyền script qua `gcloud run jobs update --args`, dấu phân cách mặc định là dấu phẩy nên cần `^|^` cho đối số có dấu phẩy.
+- Tài khoản `admin@qlda.local`: mật khẩu tạm do job `seed` tạo; đổi ngay khi đăng nhập lần đầu.
+
+## 8. Giới hạn đã biết
+
+- Terraform chạy trong dev bằng token người dùng (`GOOGLE_OAUTH_ACCESS_TOKEN`), hết hạn sau 1 giờ; với `apply` dài, chạy lại là tiếp tục từ trạng thái đã lưu.
+- Workflow `deploy-gcp.yml` **chưa chạy** (cần tạo GitHub environment `dev` với các biến ở mục 2). Lần dựng dev này dùng lệnh `gcloud` và `firebase` chạy tay, cùng các bước.
+- Chưa thử khôi phục Cloud SQL (PITR) và phiên bản đối tượng GCS.
+- Chính sách tổ chức "Domain restricted sharing" có thể chặn `allUsers` gọi Cloud Run (project dev không thuộc tổ chức nên không gặp). Với `prod` thuộc tổ chức, nhờ quản trị cho ngoại lệ.
 - Firebase Hosting giới hạn mỗi yêu cầu rewrite tới Cloud Run 60 giây; tải tài liệu đi thẳng vào bucket nên không bị ảnh hưởng.
 
-## 8. Email (đang hoãn)
+## 9. Email (đang hoãn)
 
 GCP không có dịch vụ gửi email. Tạm thời `MAIL_BACKEND=memory`: engine cảnh báo vẫn chạy, nhưng email chỉ được ghi nhận trong bộ nhớ, **không gửi đi**. Cần một nhà cung cấp SMTP (SendGrid, Mailgun, Brevo, Resend...) rồi:
 

@@ -277,3 +277,19 @@ def test_gcs_bucket_falls_back_to_the_s3_bucket_name(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(gcs_storage, "GcsStorage", lambda **kw: seen.update(kw))
     build_storage(Settings(storage_backend="gcs", s3_bucket="named", _env_file=None))  # type: ignore[call-arg]
     assert seen["bucket"] == "named"
+
+
+def test_default_credentials_are_requested_with_the_cloud_platform_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Without it IAM signBlob refuses the Cloud Run token (found on the first real deploy)."""
+    seen: dict[str, Any] = {}
+    creds = _TokenOnlyCredentials(EMAIL)
+
+    def fake_default(scopes: list[str] | None = None) -> tuple[Any, str]:
+        seen["scopes"] = scopes
+        return creds, "qlda-dev"
+
+    monkeypatch.setattr(gcs_storage.google.auth, "default", fake_default)
+    GcsStorage(bucket=BUCKET)
+    assert seen["scopes"] == ["https://www.googleapis.com/auth/cloud-platform"]

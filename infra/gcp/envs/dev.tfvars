@@ -1,5 +1,5 @@
 # terraform apply -var-file=envs/dev.tfvars
-project_id        = "qlda-dev" # replace with the real project id
+project_id        = "qlda-dev-lamdong"
 environment       = "dev"
 region            = "asia-southeast1"
 github_repository = "tuancat8730-sam/ql_capxa"

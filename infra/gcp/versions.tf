@@ -24,9 +24,17 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+
+  # with user credentials some APIs (Firebase, Monitoring) need a quota project
+  user_project_override = true
+  billing_project       = var.project_id
 }
 
 provider "google-beta" {
   project = var.project_id
   region  = var.region
+
+  # with user credentials some APIs (Firebase, Monitoring) need a quota project
+  user_project_override = true
+  billing_project       = var.project_id
 }
