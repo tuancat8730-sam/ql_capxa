@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.core.security_headers import security_headers
 from app.routers import (
     alerts,
     audit,
@@ -48,6 +49,15 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
         allow_headers=["*"],
     )
     register_error_handlers(app)
+
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
+        response = await call_next(request)
+        for name, value in security_headers(
+            request.url.path, secure=settings.cookie_secure
+        ).items():
+            response.headers.setdefault(name, value)
+        return response
 
     if settings.alert_refresh_on_write:
 

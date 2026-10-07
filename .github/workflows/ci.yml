@@ -48,3 +48,44 @@ jobs:
       - run: pnpm exec tsc -b
       - run: pnpm exec vitest run
       - run: pnpm build
+
+  e2e:
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: qlda
+          POSTGRES_PASSWORD: qlda
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U qlda" --health-interval 5s --health-retries 10
+    env:
+      CI: "1"
+      E2E_PSQL: local
+      PGPASSWORD: qlda
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+        working-directory: apps/api
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: apps/web
+      - run: pnpm exec playwright install --with-deps chromium
+        working-directory: apps/web
+      # Playwright starts the API, a moto S3 server and Vite itself (apps/web/playwright.config.ts)
+      - run: pnpm exec playwright test
+        working-directory: apps/web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: apps/web/test-results

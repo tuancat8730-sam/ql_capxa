@@ -126,6 +126,21 @@ describe('DailyLogPage', () => {
     expect(screen.getByLabelText('Công việc đã làm')).toHaveValue('') // ready for the next entry
   })
 
+  it('refreshes the recent list once the log has reached the server', async () => {
+    wrap()
+    const user = userEvent.setup()
+    await fill(user)
+    const listCalls = () =>
+      fetchMock.mock.calls.filter(([u]) => String(u).startsWith('/api/v1/packages/p4/progress-logs?')).length
+    await screen.findByRole('region', { name: 'Nhật ký gần đây' })
+    await waitFor(() => expect(listCalls()).toBeGreaterThan(0))
+    const before = listCalls()
+    await user.click(screen.getByRole('button', { name: 'Gửi nhật ký' }))
+    const queue = await screen.findByRole('region', { name: 'Đã ghi, đang gửi' })
+    await waitFor(() => expect(within(queue).getByText('Đã gửi')).toBeInTheDocument())
+    await waitFor(() => expect(listCalls()).toBeGreaterThan(before)) // fetched again, no reload needed
+  })
+
   it('works offline: shows the banner, keeps the log "Chưa gửi" and sends it when back online', async () => {
     setOnline(false)
     wrap()

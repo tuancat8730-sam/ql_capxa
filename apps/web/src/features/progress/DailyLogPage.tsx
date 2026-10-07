@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useOnline } from '@/components/layout/OfflineBanner'
@@ -100,6 +100,16 @@ export function DailyLogPage() {
   const online = useOnline()
   const canWrite = can(user?.role, 'progress', 'W')
   const outbox = useOutbox()
+  const queryClient = useQueryClient()
+
+  // A log that has just reached the server must show in the "recent" list without a reload.
+  const sentCount = outbox.filter((i) => i.status === 'sent').length
+  useEffect(() => {
+    if (sentCount > 0) {
+      void queryClient.invalidateQueries({ queryKey: ['progress-logs'] })
+      void queryClient.invalidateQueries({ queryKey: ['timeline'] })
+    }
+  }, [sentCount, queryClient])
 
   const [packageId, setPackageId] = useState('')
   const [form, setForm] = useState<DailyLogForm>(emptyForm('', today()))
