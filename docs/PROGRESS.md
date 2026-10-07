@@ -105,3 +105,13 @@ Decisions: no Terraform; `package_access` table for sensitive docs; git remote a
 - Lỗi thật do e2e tìm ra và đã sửa: danh sách "Nhật ký gần đây" không làm mới sau khi nhật ký chuyển sang "Đã gửi" (có test hồi quy).
 - **Chưa làm được trong môi trường này (cần người có tài khoản AWS):** `terraform apply`, triển khai lên AWS dev, đi hết luồng thật trên Fargate. Terraform đã qua `terraform validate` và `fmt`; ảnh Docker đã build và chạy thử migration, API, worker ở máy cá nhân. Lighthouse và kiểm tra trên thiết bị thật (SPEC mục 15) chưa chạy; Playwright mới kiểm tra chức năng, chưa kiểm tra tiếp cận.
 - Ghi chú và sai khác: (1) giao diện chưa có form tạo hợp đồng (chỉ API), nên luồng "tạo hợp đồng + bảo lãnh" của SPEC 11 được kiểm bằng sửa bảo lãnh của hợp đồng có sẵn. (2) Nhập Excel mới có danh sách hàng hóa; bảng phân bổ theo xã chưa có bảng dữ liệu (Phase 2). (3) `/admin/settings` mới có ngày nghỉ lễ; ngưỡng cảnh báo, danh mục `doc_type`, mẫu checklist vẫn là hằng số trong mã. (4) Quét virus tệp tải lên vẫn là điểm gắn.
+
+## Chuyển sang Google Cloud (thay AWS)
+Quyết định: Cloud Run, Firebase Hosting cho web, Cloud SQL, Cloud Storage cho tài liệu, hai project `dev` và `prod`, vùng `asia-southeast1`, email hoãn, xóa mã AWS sau cutover.
+- [x] Phase 1 – tài liệu: `GcsStorage` (V4 signed URL, ký bằng IAM `signBlob` khi không có file khóa), `STORAGE_BACKEND=gcs|s3` (local và e2e vẫn dùng moto), 13 test; `read_bytes` đóng luồng ngay khi dừng sớm (S3 cũng bị rò, đã sửa)
+- [x] Cookie phiên đặt tên được (`REFRESH_COOKIE_NAME`, GCP dùng `__session` vì Firebase Hosting chỉ chuyển tiếp cookie này), kích thước pool CSDL cấu hình được, worker trả 200 trên `$PORT` (Cloud Run chỉ giữ container có lắng nghe)
+- [x] Phase 3 – hạ tầng `infra/gcp` (VPC và private services access, Cloud SQL PG16 + PITR, bucket tài liệu có CORS và versioning, Cloud Run api, worker, job migrate và seed, Secret Manager, Artifact Registry, Firebase Hosting, Workload Identity Federation cho GitHub, Cloud Monitoring): `terraform validate` và `fmt` sạch
+- [x] Phase 5 – `deploy-gcp.yml` (ảnh, migration, cập nhật api và worker, Firebase Hosting, smoke test), `apps/web/firebase.json` (rewrite `/api/**`, SPA, CSP, cache); CSP đã thử trong Chromium với bản build: 7 trang, không vi phạm
+- [x] `docs/OPERATIONS_GCP.md`
+- [ ] Phase 2 – email: hoãn theo yêu cầu (`MAIL_BACKEND=memory` trên GCP; `SmtpMailer` cần đăng nhập và STARTTLS khi chọn nhà cung cấp)
+- [ ] Phase 6 – dựng dev trên GCP thật, thử tải 50 MB lên GCS bằng trình duyệt, kiểm tra khôi phục; sau đó xóa `infra/terraform`, `SesMailer`, `deploy.yml`, `OPERATIONS.md` (AWS)

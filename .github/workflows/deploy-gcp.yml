@@ -1,0 +1,89 @@
+name: Deploy (Google Cloud)
+
+# Manual: pick the environment (a GitHub environment of the same name holds the variables).
+# Google Cloud access is Workload Identity Federation: no stored keys.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-gcp-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      # from `terraform output` of the environment, stored as GitHub environment variables
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION || 'asia-southeast1' }}
+      ARTIFACT_REPOSITORY: ${{ vars.ARTIFACT_REPOSITORY }}
+      FIREBASE_SITE: ${{ vars.FIREBASE_SITE }}
+      WEB_URL: ${{ vars.WEB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push the API image
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          IMAGE="${ARTIFACT_REPOSITORY}/api:${GITHUB_SHA}"
+          docker build -t "$IMAGE" apps/api
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Run database migrations
+        run: |
+          # fails the workflow (and leaves the services untouched) when the migration fails
+          gcloud run jobs update migrate --region "$REGION" --image "$IMAGE" --quiet
+          gcloud run jobs update seed --region "$REGION" --image "$IMAGE" --quiet
+          gcloud run jobs execute migrate --region "$REGION" --wait
+
+      - name: Roll out the API and the worker
+        run: |
+          # a revision that fails its health probe never receives traffic
+          gcloud run services update api --region "$REGION" --image "$IMAGE" --quiet
+          gcloud run services update worker --region "$REGION" --image "$IMAGE" --quiet
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build the web app
+        working-directory: apps/web
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Publish the web app (Firebase Hosting)
+        working-directory: apps/web
+        run: |
+          # the site id differs per environment: patch it into a copy of firebase.json
+          jq --arg site "$FIREBASE_SITE" '.hosting.site = $site' firebase.json > firebase.deploy.json
+          npx -y firebase-tools@13 deploy --only hosting --project "$PROJECT_ID" \
+            --config firebase.deploy.json --non-interactive
+
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 12); do
+            curl -fsS "${WEB_URL}/api/v1/health" && exit 0
+            sleep 5
+          done
+          echo "the API did not answer through ${WEB_URL}"; exit 1
