@@ -322,3 +322,47 @@ async def test_failed_requests_do_not_trigger(
     finally:
         monkeypatch.undo()
         get_settings.cache_clear()
+
+
+# --- cross-process lock ------------------------------------------------------------------------
+
+
+async def test_a_second_process_waits_for_the_engine_lock(
+    session: AsyncSession, seeded: None
+) -> None:
+    """Another API task (or the worker) holding the advisory lock makes a refresh wait."""
+    import asyncio
+
+    from sqlalchemy import text
+
+    from app.core.db import get_engine
+    from app.services.alert_jobs import ENGINE_LOCK_KEY, refresh_alerts
+
+    mailer = MemoryMailer()
+    async with get_engine().connect() as other:
+        await other.execute(text("SELECT pg_advisory_lock(:k)"), {"k": ENGINE_LOCK_KEY})
+        task = asyncio.create_task(refresh_alerts(mailer))
+        await asyncio.sleep(0.5)
+        assert not task.done()  # blocked behind the other process
+        await other.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": ENGINE_LOCK_KEY})
+        await other.commit()
+    result, _ = await asyncio.wait_for(task, timeout=15)
+    assert result.created >= 0
+
+
+async def test_the_lock_is_released_even_when_a_pass_fails(
+    session: AsyncSession, seeded: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import asyncio
+
+    from app.services import alert_jobs
+
+    async def boom(_session: AsyncSession) -> None:
+        raise RuntimeError("engine failed")
+
+    monkeypatch.setattr(alert_jobs, "run_alerts", boom)
+    with pytest.raises(RuntimeError):
+        await alert_jobs.refresh_alerts(MemoryMailer())
+    monkeypatch.undo()
+    # not held any more: the next pass is not blocked
+    await asyncio.wait_for(alert_jobs.refresh_alerts(MemoryMailer()), timeout=15)

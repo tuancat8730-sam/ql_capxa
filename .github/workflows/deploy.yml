@@ -1,0 +1,111 @@
+name: Deploy
+
+# Manual: pick the environment (a GitHub environment of the same name holds the variables).
+# AWS access is a short-lived OIDC role, no stored keys (SPEC 10.2).
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-1' }}
+      CLUSTER: qlda-${{ inputs.environment }}
+      # from `terraform output` of the environment, stored as GitHub environment variables
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      WEB_BUCKET: ${{ vars.WEB_BUCKET }}
+      CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+      PRIVATE_SUBNETS: ${{ vars.PRIVATE_SUBNETS }} # comma separated
+      ECS_SECURITY_GROUP: ${{ vars.ECS_SECURITY_GROUP }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push the API image
+        run: |
+          IMAGE="${{ steps.ecr.outputs.registry }}/${ECR_REPOSITORY}"
+          docker build -t "$IMAGE:${GITHUB_SHA}" -t "$IMAGE:latest" apps/api
+          docker push "$IMAGE:${GITHUB_SHA}"
+          docker push "$IMAGE:latest"
+          echo "IMAGE=$IMAGE:${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      - name: Register task definitions with the new image
+        run: |
+          for family in api worker migrate; do
+            aws ecs describe-task-definition --task-definition "${CLUSTER}-${family}" \
+              --query taskDefinition > "td-${family}.json"
+            jq --arg image "$IMAGE" '
+              .containerDefinitions[0].image = $image
+              | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                    .compatibilities, .registeredAt, .registeredBy)' \
+              "td-${family}.json" > "td-${family}-new.json"
+            arn=$(aws ecs register-task-definition --cli-input-json "file://td-${family}-new.json" \
+              --query taskDefinition.taskDefinitionArn --output text)
+            echo "TD_${family^^}=${arn}" >> "$GITHUB_ENV"
+          done
+
+      - name: Run database migrations
+        run: |
+          task=$(aws ecs run-task --cluster "$CLUSTER" --launch-type FARGATE \
+            --task-definition "$TD_MIGRATE" \
+            --network-configuration "awsvpcConfiguration={subnets=[${PRIVATE_SUBNETS}],securityGroups=[${ECS_SECURITY_GROUP}]}" \
+            --query 'tasks[0].taskArn' --output text)
+          aws ecs wait tasks-stopped --cluster "$CLUSTER" --tasks "$task"
+          code=$(aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$task" \
+            --query 'tasks[0].containers[0].exitCode' --output text)
+          if [ "$code" != "0" ]; then echo "migration failed (exit code $code)"; exit 1; fi
+
+      - name: Roll out the API and the worker
+        run: |
+          aws ecs update-service --cluster "$CLUSTER" --service api --task-definition "$TD_API" >/dev/null
+          aws ecs update-service --cluster "$CLUSTER" --service worker --task-definition "$TD_WORKER" >/dev/null
+          aws ecs wait services-stable --cluster "$CLUSTER" --services api worker
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Build the web app
+        working-directory: apps/web
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Publish the web app
+        working-directory: apps/web
+        run: |
+          # hashed assets are immutable; the shell, service worker and manifest are always revalidated
+          aws s3 sync dist "s3://${WEB_BUCKET}" --delete \
+            --exclude index.html --exclude sw.js --exclude 'workbox-*.js' --exclude manifest.webmanifest \
+            --cache-control "public,max-age=31536000,immutable"
+          for f in index.html sw.js manifest.webmanifest; do
+            [ -f "dist/$f" ] && aws s3 cp "dist/$f" "s3://${WEB_BUCKET}/$f" --cache-control "no-cache"
+          done
+          for f in dist/workbox-*.js; do
+            aws s3 cp "$f" "s3://${WEB_BUCKET}/$(basename "$f")" --cache-control "no-cache"
+          done
+          aws cloudfront create-invalidation --distribution-id "$CLOUDFRONT_DISTRIBUTION_ID" \
+            --paths "/index.html" "/sw.js" "/manifest.webmanifest" "/workbox-*" >/dev/null

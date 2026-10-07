@@ -91,3 +91,17 @@ Decisions: no Terraform; `package_access` table for sensitive docs; git remote a
 - Tests: api 897 (97% coverage), web 183.
 - Deviations / notes: (1) cờ nhất quán Gói 02 (7.5) vẫn nằm ở trả lời hợp đồng, không phải cảnh báo vì SPEC 7.1 không có mã tương ứng. (2) Seed còn sinh thêm `CONTRACT_ENDING`, `DOC_MISSING` đúng quy tắc, danh sách 14.7 là tập con. (3) `CROSS_PKG_DEPENDENCY`: xem OPEN_QUESTIONS 27 và 28. (4) `PAYMENT_DUE` cần `payments.due_date` (cột mới, chưa có form nhập). (5) Chưa có xuất Excel danh sách cảnh báo (M8). (6) Chạy engine mỗi giờ (SPEC 4.10) thay vì chỉ 06:00/13:00 của mục 7.
 
+
+## M8 – Hoàn thiện MVP
+- [x] Tìm kiếm toàn cục `GET /search` (gói thầu, hợp đồng, tài liệu, rủi ro, vướng mắc; không cần gõ dấu; đoạn trích; tài liệu bị ẩn không bao giờ lọt vào kết quả) và hộp tìm kiếm Ctrl+K trên thanh trên
+- [x] Số văn bản đi: bảng `outgoing_doc_numbers` (migration 0008), `NNN/KIND-QLDA-SGM` tăng riêng theo loại và năm, khóa advisory chống trùng khi nhiều người cùng lấy số (test chạy 8 yêu cầu đồng thời), màn hình `/outgoing-docs`
+- [x] Xuất Excel: QL-07 (có dòng tổng và tạm ứng còn dư), rủi ro, vướng mắc, cảnh báo, danh mục hồ sơ; tiêu đề tiếng Việt, ngày và tiền thật, ô quá hạn tô đỏ, mọi lượt xuất ghi audit; nút xuất trên các màn hình
+- [x] Nhập Excel dạng khung: `POST /import/contract-items` (chạy thử, lỗi theo dòng, nhập tất cả hoặc không gì, nối thêm hoặc thay thế, tệp mẫu) và khung nhập ở màn hình hợp đồng
+- [x] Xem audit `/admin/audit` (lọc theo thao tác, đối tượng, người dùng, ngày giờ Việt Nam; phân trang; xem diff) và `/admin/settings` (ngày nghỉ lễ)
+- [x] Bảo mật: tiêu đề `Content-Security-Policy`, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, HSTS trên API; khóa advisory Postgres để engine cảnh báo và email không chạy trùng giữa nhiều tiến trình
+- [x] Playwright: 5 luồng của SPEC 11 (đăng nhập, bảo lãnh sắp hết hạn sinh cảnh báo rồi tự đóng, tải tài liệu lên S3 và tìm thấy, nhật ký hằng ngày, báo cáo rồi giải quyết và đóng vướng mắc) chạy xanh trên mobile, tablet, desktop (21/21) với CSDL mới, S3 giả và API do `scripts/e2e-stack.sh` dựng; job `e2e` trong CI
+- [x] Terraform `infra/terraform` (VPC 2 AZ, ECS Fargate api và worker, ALB HTTPS, RDS Postgres 16, S3, CloudFront có `/api/*` về ALB, SES, Secrets Manager, CloudWatch, OIDC cho GitHub; workspace `dev` và `prod`), workflow `Deploy`, `docs/OPERATIONS.md`
+- Tests: api 982 (98% coverage), web 215, Playwright 21.
+- Lỗi thật do e2e tìm ra và đã sửa: danh sách "Nhật ký gần đây" không làm mới sau khi nhật ký chuyển sang "Đã gửi" (có test hồi quy).
+- **Chưa làm được trong môi trường này (cần người có tài khoản AWS):** `terraform apply`, triển khai lên AWS dev, đi hết luồng thật trên Fargate. Terraform đã qua `terraform validate` và `fmt`; ảnh Docker đã build và chạy thử migration, API, worker ở máy cá nhân. Lighthouse và kiểm tra trên thiết bị thật (SPEC mục 15) chưa chạy; Playwright mới kiểm tra chức năng, chưa kiểm tra tiếp cận.
+- Ghi chú và sai khác: (1) giao diện chưa có form tạo hợp đồng (chỉ API), nên luồng "tạo hợp đồng + bảo lãnh" của SPEC 11 được kiểm bằng sửa bảo lãnh của hợp đồng có sẵn. (2) Nhập Excel mới có danh sách hàng hóa; bảng phân bổ theo xã chưa có bảng dữ liệu (Phase 2). (3) `/admin/settings` mới có ngày nghỉ lễ; ngưỡng cảnh báo, danh mục `doc_type`, mẫu checklist vẫn là hằng số trong mã. (4) Quét virus tệp tải lên vẫn là điểm gắn.
