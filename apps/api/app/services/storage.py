@@ -4,7 +4,8 @@ Files never pass through the API: clients PUT/GET presigned URLs directly (SPEC 
 """
 
 import asyncio
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncGenerator, AsyncIterator, Iterator
+from contextlib import aclosing
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 from urllib.parse import quote
@@ -149,7 +150,7 @@ class S3Storage:
 
         return await asyncio.to_thread(_head)
 
-    async def read_chunks(self, key: str) -> AsyncIterator[bytes]:
+    async def read_chunks(self, key: str) -> AsyncGenerator[bytes]:
         body = await asyncio.to_thread(
             lambda: self._client.get_object(Bucket=self.bucket, Key=key)["Body"]
         )
@@ -165,10 +166,12 @@ class S3Storage:
 
     async def read_bytes(self, key: str, max_bytes: int) -> bytes:
         data = bytearray()
-        async for chunk in self.read_chunks(key):
-            data.extend(chunk)
-            if len(data) > max_bytes:
-                raise ValueError("object larger than allowed")
+        # aclosing: stopping early must free the connection now, not at garbage collection
+        async with aclosing(self.read_chunks(key)) as chunks:
+            async for chunk in chunks:
+                data.extend(chunk)
+                if len(data) > max_bytes:
+                    raise ValueError("object larger than allowed")
         return bytes(data)
 
 
@@ -211,3 +214,16 @@ class MemoryStorage:
         if len(data) > max_bytes:
             raise ValueError("object larger than allowed")
         return data
+
+
+def build_storage(settings: Settings) -> Storage:
+    """Backend chosen by `STORAGE_BACKEND`: Cloud Storage in production, S3-compatible locally."""
+    if settings.storage_backend == "gcs":
+        from app.services.gcs_storage import GcsStorage  # only loaded when used
+
+        return GcsStorage(
+            bucket=settings.gcs_bucket or settings.s3_bucket,
+            project=settings.gcp_project,
+            signer_email=settings.gcs_signer_email,
+        )
+    return S3Storage.from_settings(settings)

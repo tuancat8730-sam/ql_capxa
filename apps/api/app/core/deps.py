@@ -15,7 +15,7 @@ from app.core.rbac import Level, can
 from app.core.security import decode_token
 from app.models import User
 from app.services.mailer import Mailer, build_mailer
-from app.services.storage import S3Storage, Storage
+from app.services.storage import Storage, build_storage
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -26,7 +26,7 @@ async def get_storage(request: Request) -> Storage:
     """App-wide object storage; tests inject `MemoryStorage` through `create_app(storage=...)`."""
     storage: Storage | None = request.app.state.storage
     if storage is None:
-        storage = request.app.state.storage = S3Storage.from_settings(get_settings())
+        storage = request.app.state.storage = build_storage(get_settings())
     return storage
 
 

@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     jwt_access_minutes: int = 15
     jwt_refresh_days: int = 7
     cookie_secure: bool = True
+    # Where documents live: `gcs` (Google Cloud Storage, production), `s3` (S3-compatible: local
+    # docker compose and the e2e run use a moto server).
+    storage_backend: str = "s3"
+    gcs_bucket: str | None = None
+    gcp_project: str | None = None
+    # Service account that signs URLs through IAM when there is no key file (Cloud Run).
+    gcs_signer_email: str | None = None
     s3_bucket: str = "qlda-documents"
     s3_endpoint_url: str | None = None
     # Browser-reachable S3 address used in presigned URLs (MinIO runs behind another hostname
