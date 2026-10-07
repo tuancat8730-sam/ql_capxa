@@ -23,7 +23,7 @@ async def test_admin_creates_lists_and_gets_user(session: AsyncSession, make_cli
     created = await c.post("/api/v1/users", json=NEW_USER)
     assert created.status_code == 201
     body = created.json()
-    assert body["must_change_password"] is True
+    assert body["must_change_password"] is False  # first login is not blocked any more
     assert body["temporary_password"] and len(body["temporary_password"]) >= 12
     assert "password_hash" not in body
 
@@ -38,14 +38,20 @@ async def test_admin_creates_lists_and_gets_user(session: AsyncSession, make_cli
     assert "temporary_password" not in one.json()
 
 
-async def test_temporary_password_lets_new_user_login_and_forces_change(
+async def test_temporary_password_lets_new_user_log_in_and_use_the_app(
     session: AsyncSession, make_client_for, client: httpx.AsyncClient
 ) -> None:
     c = await make_client_for(session, "admin")
     body = (await c.post("/api/v1/users", json=NEW_USER)).json()
     resp = await login(client, NEW_USER["email"], body["temporary_password"])
     assert resp.status_code == 200
-    assert resp.json()["user"]["must_change_password"] is True
+    assert resp.json()["user"]["must_change_password"] is False
+    token = resp.json()["access_token"]  # works straight away, no password change needed
+    ok = await client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert ok.status_code == 200
+    assert (
+        await client.get("/api/v1/alerts", headers={"Authorization": f"Bearer {token}"})
+    ).status_code == 200
 
 
 async def test_duplicate_email_conflict_case_insensitive(
@@ -112,7 +118,7 @@ async def test_reset_password_returns_new_temp_password_and_revokes(
     ).status_code == 401
     again = await login(client, "viewer@example.test", temp)
     assert again.status_code == 200
-    assert again.json()["user"]["must_change_password"] is True
+    assert again.json()["user"]["must_change_password"] is False
 
 
 async def test_reset_password_clears_lockout(

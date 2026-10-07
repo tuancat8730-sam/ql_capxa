@@ -152,7 +152,6 @@ function TempPassword({ value, onClose }: { value: string; onClose: () => void }
 function StatusBadge({ user }: { user: User }) {
   const { t } = useTranslation()
   if (!user.is_active) return <span className="text-danger">✕ {t('users.locked')}</span>
-  if (user.must_change_password) return <span className="text-warning">⚠ {t('users.mustChange')}</span>
   return <span className="text-success">✓ {t('users.active')}</span>
 }
 

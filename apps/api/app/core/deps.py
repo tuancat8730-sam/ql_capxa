@@ -67,8 +67,6 @@ async def current_user_allow_pw_change(user: Annotated[User, Depends(_authentica
 
 
 async def current_user(user: Annotated[User, Depends(_authenticate)]) -> User:
-    if user.must_change_password:
-        raise AppError(403, "password_change_required", "Bạn cần đổi mật khẩu trước khi tiếp tục")
     return user
 
 

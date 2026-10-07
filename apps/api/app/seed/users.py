@@ -28,7 +28,7 @@ async def ensure_admin(session: AsyncSession, email: str, password: str | None) 
             full_name="Quản trị hệ thống",
             role="admin",
             is_active=True,
-            must_change_password=True,
+            must_change_password=False,
             password_hash=hash_password(password),
         )
     )

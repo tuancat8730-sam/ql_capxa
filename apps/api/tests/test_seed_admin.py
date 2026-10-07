@@ -6,13 +6,15 @@ from app.models import User
 from app.seed.users import ensure_admin
 
 
-async def test_creates_admin_with_forced_password_change(session: AsyncSession) -> None:
+async def test_creates_admin_who_can_use_the_temporary_password_at_once(
+    session: AsyncSession,
+) -> None:
     result = await ensure_admin(session, "Boss@Example.test", "Init1al-Passw0rd")
     assert result.created is True
     admin = (await session.execute(select(User))).scalar_one()
     assert admin.email == "boss@example.test"
     assert admin.role == "admin"
-    assert admin.is_active and admin.must_change_password
+    assert admin.is_active and not admin.must_change_password
     assert verify_password("Init1al-Passw0rd", admin.password_hash)
 
 

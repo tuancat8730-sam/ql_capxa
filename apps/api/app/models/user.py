@@ -28,7 +28,8 @@ class User(IdMixin, TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
-    must_change_password: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # No longer enforced or set: kept (always false) so no migration is needed.
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     failed_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

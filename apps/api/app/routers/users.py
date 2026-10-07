@@ -80,7 +80,7 @@ async def create_user(
         phone=body.phone,
         role=body.role,
         is_active=True,
-        must_change_password=True,
+        must_change_password=False,
         password_hash=hash_password(temp),
         created_by=admin.id,
         updated_by=admin.id,
@@ -151,7 +151,7 @@ async def reset_password(
     user = await _get_or_404(session, user_id)
     temp = generate_temporary_password()
     user.password_hash = hash_password(temp)
-    user.must_change_password = True
+    user.must_change_password = False
     user.token_version += 1
     user.failed_attempts = 0
     user.locked_until = None

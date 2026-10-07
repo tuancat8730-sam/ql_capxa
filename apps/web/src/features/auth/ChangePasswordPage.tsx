@@ -23,7 +23,7 @@ type Values = z.infer<typeof schema>
 
 export function ChangePasswordPage() {
   const { t } = useTranslation()
-  const { logout, user } = useAuth()
+  const { logout } = useAuth()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
   const {
@@ -73,7 +73,6 @@ export function ChangePasswordPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-4 py-8">
       <h1 className="mb-2 text-xl font-semibold md:text-2xl">{t('auth.changeTitle')}</h1>
-      {user?.must_change_password && <p className="mb-4 text-muted-foreground">{t('auth.changeIntro')}</p>}
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         {field('current_password', t('auth.currentPassword'), 'current-password')}
         {field('new_password', t('auth.newPassword'), 'new-password')}

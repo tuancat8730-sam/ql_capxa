@@ -111,12 +111,13 @@ describe('auth flow', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1) // only the bootstrap refresh
   })
 
-  it('forces a user with a temporary password to /change-password', async () => {
+  it('no longer forces a first login to change the temporary password', async () => {
     fetchMock
       .mockResolvedValueOnce(res(200, { access_token: 't' }))
       .mockResolvedValueOnce(res(200, user({ must_change_password: true })))
     renderApp('/')
-    expect(await screen.findByText('change-pw-page')).toBeInTheDocument()
+    expect(await screen.findByText('home-page')).toBeInTheDocument()
+    expect(screen.queryByText('change-pw-page')).not.toBeInTheDocument()
   })
 
   it('blocks non-admin roles from admin routes', async () => {

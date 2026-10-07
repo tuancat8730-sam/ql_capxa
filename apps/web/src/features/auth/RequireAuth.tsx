@@ -22,9 +22,6 @@ export function RequireAuth({ roles }: RequireAuthProps) {
   if (status === 'anon' || !user) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
-  if (user.must_change_password && location.pathname !== '/change-password') {
-    return <Navigate to="/change-password" replace />
-  }
   if (roles && !roles.includes(user.role)) {
     return (
       <p role="alert" className="p-6 text-danger">

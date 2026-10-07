@@ -175,14 +175,14 @@ async def test_weak_new_password_rejected(client: httpx.AsyncClient, session: As
     assert resp.status_code == 422
 
 
-async def test_must_change_password_blocks_other_endpoints(
+async def test_a_flagged_account_is_not_blocked_any_more(
     client: httpx.AsyncClient, session: AsyncSession
 ) -> None:
+    """The first-login password change was removed: the old flag has no effect on access."""
     await make_user(session, "admin", must_change_password=True)
     tok = (await login(client, "admin@example.test")).json()["access_token"]
     resp = await client.get("/api/v1/users", headers={"Authorization": f"Bearer {tok}"})
-    assert resp.status_code == 403
-    assert resp.json()["error"]["code"] == "password_change_required"
+    assert resp.status_code == 200
 
 
 async def test_deactivated_user_token_rejected(
