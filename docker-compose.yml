@@ -12,14 +12,28 @@ services:
       interval: 5s
       retries: 10
 
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports: ["9000:9000", "9001:9001"]
-    volumes: ["miniodata:/data"]
+  # S3 stand-in for local use (MinIO's image is no longer pullable from Docker Hub). Files live in
+  # memory: they are gone after `docker compose down`.
+  s3:
+    image: motoserver/moto:latest
+    ports: ["9000:5000"]
+
+  s3-init:
+    build: ./apps/api
+    command: >
+      python -c "import boto3;
+      boto3.client('s3', endpoint_url='http://s3:5000', aws_access_key_id='test', aws_secret_access_key='test', region_name='ap-southeast-1')
+      .create_bucket(Bucket='qlda-documents', CreateBucketConfiguration={'LocationConstraint': 'ap-southeast-1'})"
+    restart: "no"
+    depends_on: [s3]
+
+  migrate:
+    build: ./apps/api
+    command: alembic upgrade head
+    env_file: .env
+    restart: "no"
+    depends_on:
+      db: { condition: service_healthy }
 
   mailpit:
     image: axllent/mailpit
@@ -29,18 +43,22 @@ services:
     build: ./apps/api
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     env_file: .env
-    volumes: ["./apps/api:/srv"]
+    # the anonymous /srv/.venv keeps the image's environment instead of the host's
+    volumes: ["./apps/api:/srv", "/srv/.venv"]
     ports: ["8000:8000"]
     depends_on:
       db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      s3-init: { condition: service_completed_successfully }
 
   worker:
     build: ./apps/api
     command: python -m app.worker
     env_file: .env
-    volumes: ["./apps/api:/srv"]
+    volumes: ["./apps/api:/srv", "/srv/.venv"]
     depends_on:
       db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
 
   web:
     image: node:24-alpine
@@ -48,10 +66,9 @@ services:
     command: sh -c "corepack enable && pnpm install && pnpm dev"
     environment:
       VITE_API_PROXY: http://api:8000
-    volumes: ["./apps/web:/srv"]
+    volumes: ["./apps/web:/srv", "/srv/node_modules"]
     ports: ["5173:5173"]
     depends_on: [api]
 
 volumes:
   pgdata:
-  miniodata:
