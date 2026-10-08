@@ -8,9 +8,10 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import SessionDep, require
+from app.core.deps import ProjectDep, SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level, can
+from app.core.scope import current_project_id
 from app.models import (
     Contract,
     DisbursementPlan,
@@ -21,7 +22,6 @@ from app.models import (
     User,
 )
 from app.routers.contracts import contract_or_404
-from app.routers.project import get_single_project
 from app.schemas.common import Page, PaginationDep
 from app.schemas.finance import (
     DisbursementItem,
@@ -173,6 +173,7 @@ async def _guarantee_or_404(session: AsyncSession, guarantee_id: uuid.UUID) -> G
     g = await session.get(Guarantee, guarantee_id)
     if g is None:
         raise AppError(404, "not_found", "Không tìm thấy bảo lãnh")
+    await contract_or_404(session, g.contract_id)  # refuses another project's contract
     return g
 
 
@@ -231,7 +232,11 @@ async def list_guarantees(
         select(Guarantee, Contract, Package)
         .join(Contract, Contract.id == Guarantee.contract_id)
         .join(Package, Package.id == Contract.package_id)
-        .where(Contract.deleted_at.is_(None), Package.deleted_at.is_(None))
+        .where(
+            Contract.deleted_at.is_(None),
+            Package.deleted_at.is_(None),
+            Package.project_id == current_project_id(),
+        )
     )
     if guarantee_type:
         stmt = stmt.where(Guarantee.guarantee_type == guarantee_type)
@@ -286,6 +291,7 @@ async def _payment_or_404(session: AsyncSession, payment_id: uuid.UUID) -> Payme
     p = await session.get(Payment, payment_id)
     if p is None:
         raise AppError(404, "not_found", "Không tìm thấy khoản thanh toán")
+    await contract_or_404(session, p.contract_id)  # refuses another project's contract
     return p
 
 
@@ -358,7 +364,9 @@ async def update_payment(
             raise AppError(400, "bad_request", "Dùng thao tác mark-paid để ghi nhận thanh toán")
         if new_status not in PAYMENT_TRANSITIONS[p.status]:
             raise AppError(400, "bad_request", f"Không thể chuyển từ {p.status} sang {new_status}")
-        if new_status in APPROVAL_TARGETS and not can(user.role, "payment", Level.APPROVE):
+        if new_status in APPROVAL_TARGETS and not can(
+            user.effective_role, "payment", Level.APPROVE
+        ):
             raise AppError(403, "forbidden", "Chỉ người có quyền duyệt mới được duyệt hoặc từ chối")
         if new_status == "requested":
             changes.setdefault("requested_date", p.requested_date or today_local())
@@ -421,7 +429,11 @@ async def list_payments(
         select(Payment, Contract, Package)
         .join(Contract, Contract.id == Payment.contract_id)
         .join(Package, Package.id == Contract.package_id)
-        .where(Contract.deleted_at.is_(None), Package.deleted_at.is_(None))
+        .where(
+            Contract.deleted_at.is_(None),
+            Package.deleted_at.is_(None),
+            Package.project_id == current_project_id(),
+        )
     )
     if status:
         stmt = stmt.where(Payment.status == status)
@@ -484,16 +496,20 @@ async def _plan_rows(session: AsyncSession, project_id: uuid.UUID) -> list[Disbu
 
 
 @router.get("/project/disbursement-plan", response_model=DisbursementPlanOut)
-async def read_disbursement_plan(_: PaymentReader, session: SessionDep) -> DisbursementPlanOut:
-    project = await get_single_project(session)
+async def read_disbursement_plan(
+    _: PaymentReader, session: SessionDep, project: ProjectDep
+) -> DisbursementPlanOut:
     return _plan_out(await _plan_rows(session, project.id))
 
 
 @router.put("/project/disbursement-plan", response_model=DisbursementPlanOut)
 async def replace_disbursement_plan(
-    body: DisbursementPlanIn, request: Request, user: PaymentWriter, session: SessionDep
+    body: DisbursementPlanIn,
+    request: Request,
+    user: PaymentWriter,
+    session: SessionDep,
+    project: ProjectDep,
 ) -> DisbursementPlanOut:
-    project = await get_single_project(session)
     keys = [(i.package_id, i.year, i.month) for i in body.items]
     if len(keys) != len(set(keys)):
         raise AppError(

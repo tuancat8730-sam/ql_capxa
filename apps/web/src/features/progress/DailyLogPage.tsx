@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { useOnline } from '@/components/layout/OfflineBanner'
 import { PhotoCapture } from '@/components/ui/PhotoCapture'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, type Page } from '@/lib/api'
 import { formatDate } from '@/lib/format'
@@ -27,6 +26,7 @@ import {
 } from '@/lib/offline'
 import { can } from '@/lib/permissions'
 import type { ProgressLog } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const MAX_PHOTOS = 10
 const WEATHERS = ['sunny', 'cloudy', 'rain', 'storm'] as const
@@ -96,9 +96,9 @@ function Thumb({ photo, onRemove, label }: { photo: PendingPhoto; onRemove: () =
 
 export function DailyLogPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const online = useOnline()
-  const canWrite = can(user?.role, 'progress', 'W')
+  const canWrite = can(role, 'progress', 'W')
   const outbox = useOutbox()
   const queryClient = useQueryClient()
 

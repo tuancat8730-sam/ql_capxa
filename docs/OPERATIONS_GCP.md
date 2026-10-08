@@ -132,3 +132,10 @@ GCP không có dịch vụ gửi email. Tạm thời `MAIL_BACKEND=memory`: engi
 2. gỡ `SesMailer`,
 3. đặt `mail_backend = "smtp"` trong tfvars.
 Gửi qua cổng 587 hoặc 465 (GCP chặn cổng 25).
+
+## Nhiều dự án (từ migration 0010)
+- Migration `0010` chuyển người dùng hiện có thành thành viên của dự án cấp xã (vai trò = vai trò tài khoản) và gắn mọi dữ liệu cũ vào dự án đó; `0011` thêm bảng của dự án phần mềm. Cả hai chạy trong job `migrate` như thường lệ và có `downgrade`.
+- Dự án **SGD-HCM** được tạo bởi job `seed` (`gcloud run jobs execute seed ... --wait`; chạy lại an toàn, không đụng dữ liệu đã nhập). Lúc đầu chỉ admin hệ thống thấy dự án; thêm người ở **Quản trị → Dự án → Thành viên**.
+- Người dùng mới do admin tạo được thêm vào dự án admin đang chọn. Gỡ ai khỏi dự án trong ứng dụng sẽ không bị `seed` hoàn lại.
+- API trả `Vary: X-Project-Id`, nên bộ nhớ đệm của PWA không lẫn dữ liệu giữa các dự án.
+

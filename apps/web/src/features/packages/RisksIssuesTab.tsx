@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
-import { useAuth } from '@/features/auth/AuthContext'
 import { primaryButton } from '@/features/auth/LoginPage'
 import { IssueCard } from '@/features/issues/IssuesPage'
 import { IssueSheet, NewIssueSheet } from '@/features/issues/IssueSheets'
@@ -13,13 +12,14 @@ import { RiskLevelBadge } from '@/features/risks/RisksPage'
 import type { Risk } from '@/features/risks/types'
 import { api, type Page } from '@/lib/api'
 import { can } from '@/lib/permissions'
+import { useRole } from '@/features/projects/ProjectContext'
 
 /** Risks and issues of one package (SPEC 4.3 tab 6), with quick add. */
 export function RisksIssuesTab({ packageId }: { packageId: string }) {
   const { t } = useTranslation()
-  const { user } = useAuth()
-  const canWrite = can(user?.role, 'risk', 'W')
-  const canClose = can(user?.role, 'risk', 'A')
+  const role = useRole()
+  const canWrite = can(role, 'risk', 'W')
+  const canClose = can(role, 'risk', 'A')
   const [addRisk, setAddRisk] = useState(false)
   const [addIssue, setAddIssue] = useState(false)
   const [opened, setOpened] = useState<Issue | null>(null)

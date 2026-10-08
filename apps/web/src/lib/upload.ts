@@ -101,6 +101,8 @@ export interface UploadOptions {
   packageId?: string | null
   /** Set when uploading a new version of an existing document. */
   parentDocumentId?: string | null
+  /** Pin the request to this project instead of the selected one (queued offline uploads). */
+  projectId?: string | null
   onProgress?: (fraction: number) => void
   wait?: (ms: number) => Promise<void>
 }
@@ -113,7 +115,7 @@ export async function uploadFile(file: File, opts: UploadOptions = {}): Promise<
     size_bytes: file.size,
     package_id: opts.packageId ?? null,
     parent_document_id: opts.parentDocumentId ?? null,
-  })
+  }, opts.projectId ? { headers: { 'X-Project-Id': opts.projectId } } : undefined)
   // The signature binds Content-Type, so send exactly what the API signed.
   await putWithRetry(file, target.upload, { onProgress: opts.onProgress, wait: opts.wait })
   return {

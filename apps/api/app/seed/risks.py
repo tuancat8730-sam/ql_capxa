@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Package, Project, Risk
+from app.models import Package, Risk
+from app.seed.project import capxa_project
 from app.services.risk_rules import risk_score
 
 
@@ -128,11 +129,20 @@ RISKS: tuple[RiskSeed, ...] = (
 
 async def seed_risks(session: AsyncSession) -> None:
     """Requires `seed_project`. Idempotent: matches existing risks by title."""
-    project = (await session.execute(select(Project))).scalars().first()
+    project = await capxa_project(session)
     if project is None:
         return
-    packages = {p.number: p.id for p in (await session.execute(select(Package))).scalars().all()}
-    existing = set((await session.execute(select(Risk.title))).scalars().all())
+    packages = {
+        p.number: p.id
+        for p in (await session.execute(select(Package).where(Package.project_id == project.id)))
+        .scalars()
+        .all()
+    }
+    existing = set(
+        (await session.execute(select(Risk.title).where(Risk.project_id == project.id)))
+        .scalars()
+        .all()
+    )
     last = len(existing)
     for seed in RISKS:
         if seed.title in existing:

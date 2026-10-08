@@ -1,8 +1,10 @@
 """`outgoing_doc_numbers` (SPEC 3.23): outgoing document numbers, sequential per kind and year."""
 
+import uuid
 from datetime import date
 
-from sqlalchemy import Date, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, Index, Integer, String, Text, UniqueConstraint
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, IdMixin, TimestampMixin, enum_check
@@ -13,11 +15,14 @@ DOC_KINDS = ("CV", "BC", "TB", "BB", "QD", "TT", "KH")
 class OutgoingDocNumber(IdMixin, TimestampMixin, Base):
     __tablename__ = "outgoing_doc_numbers"
     __table_args__ = (
-        UniqueConstraint("year", "doc_kind", "seq", name="year_kind_seq"),
+        UniqueConstraint("project_id", "year", "doc_kind", "seq", name="project_year_kind_seq"),
         enum_check("doc_kind", DOC_KINDS),
         Index("ix_outgoing_doc_numbers_year", "year"),
     )
 
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False
+    )
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     doc_kind: Mapped[str] = mapped_column(String(10), nullable=False)
     seq: Mapped[int] = mapped_column(Integer, nullable=False)

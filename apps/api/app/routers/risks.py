@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import Integer, cast, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import SessionDep, require
+from app.core.deps import ProjectDep, SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level, can
+from app.core.scope import current_project_id
 from app.models import Package, Risk, User
-from app.routers.project import get_single_project
 from app.schemas.common import Page, PaginationDep
 from app.schemas.risk import MatrixCell, MatrixOut, RiskIn, RiskOut, RiskUpdate
 from app.services import audit
@@ -37,6 +37,9 @@ _TRACKED = (
     "owner_id",
     "mitigation",
     "contingency",
+    "group_name",
+    "owner_text",
+    "note",
     "status",
     "due_date",
 )
@@ -46,14 +49,15 @@ _LEVEL_RANGES = {"low": (1, 5), "medium": (6, 12), "high": (13, 25)}
 
 async def next_code(session: AsyncSession, model: Any, prefix: str) -> str:
     """Sequential human codes (R-001, V-014, ...); an advisory lock serialises creators."""
+    project_id = current_project_id()
     await session.execute(
-        text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": f"code:{prefix}"}
+        text("SELECT pg_advisory_xact_lock(hashtext(:k))"), {"k": f"code:{project_id}:{prefix}"}
     )
     last = (
         await session.execute(
             select(
                 func.coalesce(func.max(cast(func.substr(model.code, len(prefix) + 2), Integer)), 0)
-            )
+            ).where(model.project_id == project_id)
         )
     ).scalar_one()
     return f"{prefix}-{last + 1:03d}"
@@ -70,17 +74,16 @@ def _out(risk: Risk, now: datetime | None = None) -> RiskOut:
 
 async def _risk_or_404(session: AsyncSession, risk_id: uuid.UUID) -> Risk:
     risk = await session.get(Risk, risk_id)
-    if risk is None:
+    if risk is None or risk.project_id != current_project_id():
         raise AppError(404, "not_found", "Không tìm thấy rủi ro")
     return risk
 
 
 async def _check_refs(session: AsyncSession, data: dict[str, Any]) -> None:
-    if (
-        data.get("package_id") is not None
-        and await session.get(Package, data["package_id"]) is None
-    ):
-        raise AppError(422, "validation_error", "Gói thầu không tồn tại", ["package_id"])
+    if data.get("package_id") is not None:
+        package = await session.get(Package, data["package_id"])
+        if package is None or package.project_id != current_project_id():
+            raise AppError(422, "validation_error", "Gói thầu không tồn tại", ["package_id"])
     if data.get("owner_id") is not None:
         owner = await session.get(User, data["owner_id"])
         if owner is None or not owner.is_active:
@@ -101,7 +104,7 @@ async def list_risks(
     impact: Annotated[int | None, Query(ge=1, le=5)] = None,
     q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> Page[RiskOut]:
-    stmt = select(Risk)
+    stmt = select(Risk).where(Risk.project_id == current_project_id())
     for column, value in (
         (Risk.package_id, package_id),
         (Risk.status, status),
@@ -149,7 +152,9 @@ async def risk_matrix(
     include_closed: bool = False,
 ) -> MatrixOut:
     """5x5 heat map of risks; closed ones are left out unless asked for."""
-    stmt = select(Risk.id, Risk.probability, Risk.impact)
+    stmt = select(Risk.id, Risk.probability, Risk.impact).where(
+        Risk.project_id == current_project_id()
+    )
     if not include_closed:
         stmt = stmt.where(Risk.status != "closed")
     if package_id:
@@ -167,10 +172,11 @@ async def risk_matrix(
 
 
 @router.post("/risks", response_model=RiskOut, status_code=201)
-async def create_risk(body: RiskIn, request: Request, user: Writer, session: SessionDep) -> RiskOut:
+async def create_risk(
+    body: RiskIn, request: Request, user: Writer, session: SessionDep, project: ProjectDep
+) -> RiskOut:
     data = body.model_dump(exclude_unset=True)
     await _check_refs(session, data)
-    project = await get_single_project(session)
     risk = Risk(
         code=await next_code(session, Risk, "R"),
         project_id=project.id,
@@ -217,7 +223,7 @@ async def update_risk(
         and new_status != risk.status
         and "closed" in {new_status, risk.status}
     )
-    if closing_or_reopening and not can(user.role, "risk", Level.APPROVE):
+    if closing_or_reopening and not can(user.effective_role, "risk", Level.APPROVE):
         raise AppError(403, "forbidden", "Chỉ Giám đốc QLDA được đóng hoặc mở lại rủi ro")
     before = audit.snapshot(risk, _TRACKED)
     for field, value in changes.items():

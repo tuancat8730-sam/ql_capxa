@@ -312,7 +312,7 @@ Mọi endpoint yêu cầu JWT trừ `/auth/login`, `/auth/refresh`, `/health`. D
 |---|---|---|
 | Auth | `POST /auth/login`, `/auth/refresh`, `/auth/logout`, `GET /auth/me`, `POST /auth/change-password` | |
 | Users | `GET/POST /users`, `GET/PATCH /users/{id}`, `POST /users/{id}/reset-password` | admin |
-| Project | `GET/PATCH /project` | một dự án duy nhất ở MVP |
+| Project | `GET/PATCH /project` | dự án đang chọn (header `X-Project-Id`); nhiều dự án: xem mục 16 |
 | Dashboard | `GET /dashboard/summary`, `/dashboard/timeline`, `/dashboard/cashflow`, `/dashboard/top-risks`, `/dashboard/alerts` | |
 | Packages | `GET /packages`, `GET/PATCH /packages/{id}`, `GET /packages/{id}/overview` | |
 | Contracts | `GET/POST /packages/{id}/contracts`, `GET/PATCH /contracts/{id}`, `/contracts/{id}/parties`, `/items`, `/amendments` | CRUD con |
@@ -662,6 +662,30 @@ Phạm vi MVP: **chỉ nhật ký hằng ngày và tải ảnh** hoạt động 
 
 ### 15.12 Kiểm thử giao diện
 Playwright chạy ba dự án: `mobile` (Pixel 5, 393×851), `tablet` (iPad Mini), `desktop` (1280×800). Các luồng mục 11 chạy ở cả ba. Thêm: kiểm tra không tràn ngang (`document.scrollingElement.scrollWidth <= innerWidth`), kiểm tra axe-core không có lỗi mức nghiêm trọng, và một ca ngoại tuyến (tắt mạng, tạo nhật ký, bật mạng, thấy "Đã gửi").
+
+---
+
+## 16. Nhiều dự án cùng lúc
+
+Ứng dụng quản lý nhiều dự án; dự án cấp xã Lâm Đồng ở các mục trên là một dự án loại `procurement`. Mục này bổ sung và ưu tiên hơn các câu "một dự án duy nhất ở MVP".
+
+### 16.1 Mô hình
+- `projects.project_type`: `procurement` (gói thầu, hợp đồng, bảo lãnh, thanh toán) hoặc `software_delivery` (lịch WBS, báo cáo tuần, tồn đọng chờ CĐT). Loại quyết định danh sách module (`app/core/project_types.py`) mà menu hiển thị.
+- `project_members(project_id, user_id, role)`: vai trò theo dự án (cùng 8 vai trò mục 1.4). `users.role` chỉ còn là vai trò mặc định khi thêm người vào dự án; riêng `admin` là quản trị hệ thống, thấy mọi dự án và không cần ghế.
+- `project_id` có thêm ở `issues`, `change_requests`, `alerts`, `audit_log` (null cho đăng nhập và tài khoản), `outgoing_doc_numbers`. Mã `R-001`, `V-001`, `C-001` và số văn bản đi duy nhất **trong dự án**.
+
+### 16.2 API
+- Mọi request nghiệp vụ gửi header `X-Project-Id`. Thiếu header: dùng dự án duy nhất của người dùng; có nhiều dự án thì `400`. Không thuộc dự án thì `403`; admin hệ thống thì qua.
+- `require(resource, level)` kiểm vai trò **trong dự án của request**. Thực thể truy cập theo id (gói, hợp đồng, tài liệu, rủi ro, vướng mắc, họp…) thuộc dự án khác trả `404`.
+- `GET /projects` (dự án của tôi, kèm vai trò và module), `POST /projects` (admin), `GET /projects/{id}/members`, `PUT|DELETE /projects/{id}/members/{user_id}` (admin). Tạo người dùng mới tự thêm vào dự án admin đang chọn.
+- Engine cảnh báo chạy từng dự án; email do giám đốc **của dự án đó** nhận.
+
+### 16.3 Dự án `software_delivery`
+- Bảng `wbs_tasks` (giai đoạn, đầu việc, mốc; kế hoạch gốc + tiến độ thực tế), `weekly_reports` (kỳ 7 ngày thứ Sáu–thứ Năm tính từ ngày bắt đầu kế hoạch), `decision_items` (tồn đọng chờ CĐT). Rủi ro dùng lại bảng `risks` (thêm `group_name`, `owner_text`, `note`); 4 mức Rất cao/Cao/Trung bình/Thấp ↔ điểm xác suất × tác động 25/16/9/4.
+- API `/delivery/*`: `tasks`, `overview`, `weeks`, `reports/{week_start}`, `decisions`. Tỷ trọng mọi con số % là số ngày làm việc của đầu việc; mốc không có trọng số. Quy tắc trạng thái ở `services/delivery_rules.py`.
+- Cảnh báo: `TASK_LATE`, `MILESTONE_SOON`, `WEEKLY_REPORT_MISSING`, `DECISION_OVERDUE`, `RISK_VERY_HIGH`.
+- Frontend: trang chủ, Gantt, báo cáo tuần, rủi ro, tồn đọng; quyền dùng các tài nguyên `wbs`, `weekly_report`, `decision` (ma trận ở `app/core/rbac.py`).
+- Dự án SGD-HCM được seed từ kế hoạch gốc (`app/seed/sgd_hcm_plan.py`, 11 giai đoạn, 35 đầu việc + 9 mốc); chưa có ai trong dự án ngoài admin hệ thống.
 
 ---
 

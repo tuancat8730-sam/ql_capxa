@@ -142,7 +142,15 @@ async def test_milestones_cover_the_next_30_days_in_date_order(
     soon, far = (await session.execute(dated)).scalars().all()[:2]
     soon.expiry_date = today + timedelta(days=5)
     far.expiry_date = today + timedelta(days=31)
-    session.add(ActionItem(title="Gửi công văn", due_date=today + timedelta(days=2), status="open"))
+    package_id = (await session.execute(select(Package.id).limit(1))).scalar_one()
+    session.add(
+        ActionItem(
+            title="Gửi công văn",
+            package_id=package_id,
+            due_date=today + timedelta(days=2),
+            status="open",
+        )
+    )
     await session.commit()
 
     c = await make_client_for(session, "viewer")

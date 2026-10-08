@@ -8,12 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level
+from app.core.scope import not_found_unless_in_project
 from app.models import (
     Contract,
     ContractAmendment,
     ContractItem,
     ContractParty,
     Organization,
+    Package,
     User,
 )
 from app.routers.packages import package_or_404
@@ -46,6 +48,8 @@ async def contract_or_404(session: AsyncSession, contract_id: uuid.UUID) -> Cont
     contract = await session.get(Contract, contract_id)
     if contract is None or contract.deleted_at is not None:
         raise AppError(404, "not_found", "Không tìm thấy hợp đồng")
+    package = await session.get(Package, contract.package_id)
+    not_found_unless_in_project(package.project_id if package else None, "Không tìm thấy hợp đồng")
     return contract
 
 
@@ -208,6 +212,7 @@ async def _child_or_404[T](session: AsyncSession, model: type[T], child_id: uuid
     child = await session.get(model, child_id)
     if child is None:
         raise AppError(404, "not_found", "Không tìm thấy bản ghi")
+    await contract_or_404(session, child.contract_id)  # type: ignore[attr-defined]
     return child
 
 

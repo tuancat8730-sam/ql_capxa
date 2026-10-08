@@ -6,8 +6,9 @@ from fastapi import APIRouter, Query
 from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.core.deps import CurrentUser, SessionDep
+from app.core.deps import CurrentUser, ProjectCtx, SessionDep
 from app.core.rbac import Level, can
+from app.core.scope import current_project_id
 from app.models import Contract, Document, Issue, Package, Risk
 from app.schemas.search import SearchGroup, SearchHit, SearchKind, SearchOut
 from app.services.documents import accessible_package_ids, visible_clause
@@ -40,6 +41,7 @@ def _label(number: int | None) -> str | None:
 @router.get("/search", response_model=SearchOut)
 async def search(
     user: CurrentUser,
+    _ctx: ProjectCtx,
     session: SessionDep,
     q: Annotated[str, Query(min_length=MIN_QUERY_LENGTH, max_length=100)],
     limit: Annotated[int, Query(ge=1, le=20)] = 5,
@@ -52,11 +54,12 @@ async def search(
         if total:
             groups.append(SearchGroup(kind=kind, total=total, items=items))
 
-    if can(user.role, "package", Level.READ):
+    if can(user.effective_role, "package", Level.READ):
         stmt: Any = (
             select(Package)
             .where(
                 Package.deleted_at.is_(None),
+                Package.project_id == current_project_id(),
                 _matches(
                     query,
                     Package.name,
@@ -88,12 +91,13 @@ async def search(
             ],
         )
 
-    if can(user.role, "contract", Level.READ):
+    if can(user.effective_role, "contract", Level.READ):
         stmt = (
             select(Contract, Package.number)
             .join(Package, Package.id == Contract.package_id)
             .where(
                 Contract.deleted_at.is_(None),
+                Package.project_id == current_project_id(),
                 _matches(
                     query,
                     Contract.contract_no,
@@ -130,7 +134,7 @@ async def search(
             ],
         )
 
-    if can(user.role, "document", Level.READ):
+    if can(user.effective_role, "document", Level.READ):
         access_ids = await accessible_package_ids(session, user)
         vector = func.plainto_tsquery("simple", func.unaccent(query))
         stmt = (
@@ -138,6 +142,7 @@ async def search(
             .outerjoin(Package, Package.id == Document.package_id)
             .where(
                 Document.deleted_at.is_(None),
+                Document.project_id == current_project_id(),
                 Document.is_current.is_(True),
                 visible_clause(user, access_ids),
                 or_(
@@ -169,11 +174,12 @@ async def search(
             ],
         )
 
-    if can(user.role, "risk", Level.READ):
+    if can(user.effective_role, "risk", Level.READ):
         risk_stmt = (
             select(Risk, Package.number)
             .outerjoin(Package, Package.id == Risk.package_id)
             .where(
+                Risk.project_id == current_project_id(),
                 _matches(
                     query,
                     Risk.code,
@@ -181,7 +187,7 @@ async def search(
                     Risk.description,
                     Risk.mitigation,
                     Risk.contingency,
-                )
+                ),
             )
             .order_by(Risk.code)
         )
@@ -205,7 +211,10 @@ async def search(
         issue_stmt = (
             select(Issue, Package.number)
             .outerjoin(Package, Package.id == Issue.package_id)
-            .where(_matches(query, Issue.code, Issue.title, Issue.description, Issue.resolution))
+            .where(
+                Issue.project_id == current_project_id(),
+                _matches(query, Issue.code, Issue.title, Issue.description, Issue.resolution),
+            )
             .order_by(Issue.code)
         )
         total, rows = await _page(session, issue_stmt, limit)

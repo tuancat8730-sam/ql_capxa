@@ -9,12 +9,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.deps import SessionDep, StorageDep, require, require_roles
+from app.core.deps import ProjectDep, SessionDep, StorageDep, require, require_roles
 from app.core.errors import AppError
 from app.core.rbac import Level
-from app.models import ChecklistItem, Document, Package, PackageAccess, User
+from app.core.scope import current_project_id
+from app.models import ChecklistItem, Document, Package, PackageAccess, ProjectMember, User
 from app.routers.packages import package_or_404
-from app.routers.project import get_single_project
 from app.schemas.common import Page, PaginationDep
 from app.schemas.document import (
     RESTRICTED_TITLE,
@@ -83,7 +83,7 @@ def _restricted(doc: Document) -> DocumentOut:
 
 async def _load(session: AsyncSession, document_id: uuid.UUID) -> Document:
     doc = await session.get(Document, document_id)
-    if doc is None or doc.deleted_at is not None:
+    if doc is None or doc.deleted_at is not None or doc.project_id != current_project_id():
         raise AppError(404, "not_found", "Không tìm thấy tài liệu")
     return doc
 
@@ -122,7 +122,9 @@ async def list_documents(
 ) -> Page[DocumentOut]:
     """Without `q` hidden files appear as redacted stubs; with `q` they are excluded entirely."""
     access_ids = await accessible_package_ids(session, user)
-    stmt = select(Document).where(Document.deleted_at.is_(None))
+    stmt = select(Document).where(
+        Document.deleted_at.is_(None), Document.project_id == current_project_id()
+    )
     if current_only:
         stmt = stmt.where(Document.is_current.is_(True))
     for column, value in (
@@ -243,10 +245,13 @@ async def _package_scope(
 
 @router.post("/documents/upload-url", response_model=UploadUrlResponse)
 async def create_upload_url(
-    body: UploadUrlRequest, user: Writer, session: SessionDep, storage: StorageDep
+    body: UploadUrlRequest,
+    user: Writer,
+    session: SessionDep,
+    storage: StorageDep,
+    project: ProjectDep,
 ) -> UploadUrlResponse:
     _check_file(body.mime_type, body.size_bytes)
-    project = await get_single_project(session)
     parent: Document | None = None
     package_id = body.package_id
     version = 1
@@ -403,8 +408,8 @@ async def create_document(
     user: Writer,
     session: SessionDep,
     storage: StorageDep,
+    project: ProjectDep,
 ) -> Document:
-    project = await get_single_project(session)
     package = await _package_scope(session, user, body.package_id, body.confidentiality)
     if package is not None and package.project_id != project.id:
         raise AppError(422, "validation_error", "Gói thầu không thuộc dự án", ["package_id"])
@@ -570,7 +575,7 @@ async def update_document(
         changes.setdefault("category", DOC_TYPE_CODES[changes["doc_type"]].category)
     if "confidentiality" in changes and changes["confidentiality"] != doc.confidentiality:
         package = await session.get(Package, doc.package_id) if doc.package_id else None
-        if user.role not in {"admin", "director"}:
+        if user.effective_role not in {"admin", "director"}:
             raise _forbidden()
         if changes["confidentiality"] == "normal" and package and package.is_sensitive:
             raise AppError(409, "conflict", "Gói nhạy cảm: tài liệu phải ở mức nhạy cảm")
@@ -680,7 +685,17 @@ async def replace_access(
             .scalars()
             .all()
         )
-        bad = [str(u.id) for u in found if u.role not in {"procurement", "technical"}]
+        roles = dict(
+            (
+                await session.execute(
+                    select(ProjectMember.user_id, ProjectMember.role).where(
+                        ProjectMember.project_id == current_project_id(),
+                        ProjectMember.user_id.in_(wanted),
+                    )
+                )
+            ).all()
+        )
+        bad = [str(u.id) for u in found if roles.get(u.id) not in {"procurement", "technical"}]
         missing = [str(i) for i in wanted - {u.id for u in found}]
         if bad or missing:
             raise AppError(

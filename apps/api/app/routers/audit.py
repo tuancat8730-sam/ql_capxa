@@ -3,10 +3,11 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from app.core.deps import SessionDep, require
 from app.core.rbac import Level
+from app.core.scope import current_project_id
 from app.models import AuditLog, User
 from app.schemas.audit import AuditFacets, AuditLogOut, AuditUser
 from app.schemas.common import Page, PaginationDep
@@ -18,13 +19,17 @@ Reader = Annotated[User, Depends(require("audit_log", Level.READ))]
 
 @router.get("/facets", response_model=AuditFacets)
 async def audit_facets(_: Reader, session: SessionDep) -> AuditFacets:
-    actions = await session.execute(select(AuditLog.action).distinct().order_by(AuditLog.action))
+    # account and login events belong to no project and show everywhere
+    here = or_(AuditLog.project_id == current_project_id(), AuditLog.project_id.is_(None))
+    actions = await session.execute(
+        select(AuditLog.action).where(here).distinct().order_by(AuditLog.action)
+    )
     kinds = await session.execute(
-        select(AuditLog.entity_type).distinct().order_by(AuditLog.entity_type)
+        select(AuditLog.entity_type).where(here).distinct().order_by(AuditLog.entity_type)
     )
     users = await session.execute(
         select(User.id, User.full_name)
-        .where(User.id.in_(select(AuditLog.user_id).distinct()))
+        .where(User.id.in_(select(AuditLog.user_id).where(here).distinct()))
         .order_by(User.full_name)
     )
     return AuditFacets(
@@ -46,7 +51,11 @@ async def list_audit_log(
     ts_from: datetime | None = None,
     ts_to: datetime | None = None,
 ) -> Page[AuditLogOut]:
-    stmt = select(AuditLog, User.full_name).outerjoin(User, User.id == AuditLog.user_id)
+    stmt = (
+        select(AuditLog, User.full_name)
+        .outerjoin(User, User.id == AuditLog.user_id)
+        .where(or_(AuditLog.project_id == current_project_id(), AuditLog.project_id.is_(None)))
+    )
     if action:
         stmt = stmt.where(AuditLog.action == action)
     if entity_type:

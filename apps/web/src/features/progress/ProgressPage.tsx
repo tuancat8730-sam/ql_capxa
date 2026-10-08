@@ -3,12 +3,12 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { HealthBadge, StatusBadge, type Tone } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { api, ApiError, download } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import { Gantt } from './Gantt'
 import type { StageStatus, Timeline } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 export const STAGE_TONE: Record<StageStatus, { tone: Tone; icon: string }> = {
   not_started: { tone: 'neutral', icon: '○' },
@@ -29,9 +29,9 @@ export function StageStatusBadge({ status }: { status: StageStatus }) {
 
 export function ProgressPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
-  const canEdit = can(user?.role, 'progress', 'W')
+  const canEdit = can(role, 'progress', 'W')
   const [zoom, setZoom] = useState<'month' | 'week'>('month')
   const [error, setError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)

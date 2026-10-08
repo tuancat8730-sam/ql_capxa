@@ -7,12 +7,12 @@ import { ResponsiveList } from '@/components/responsive/ResponsiveList'
 import { ExportButton } from '@/components/ui/ExportButton'
 import { MoneyInput } from '@/components/ui/MoneyInput'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, ApiError, type Page } from '@/lib/api'
 import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import type { DisbursementItem, DisbursementPlan, PaymentRow, PaymentStatus } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const STATUS_TONE: Record<PaymentStatus, { tone: Tone; icon: string }> = {
   planned: { tone: 'neutral', icon: '○' },
@@ -192,10 +192,10 @@ function DisbursementSection({ canEdit }: { canEdit: boolean }) {
 
 export function PaymentsPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
-  const canWrite = can(user?.role, 'payment', 'W')
-  const canApprove = can(user?.role, 'payment', 'A')
+  const canWrite = can(role, 'payment', 'W')
+  const canApprove = can(role, 'payment', 'A')
   const [paying, setPaying] = useState<PaymentRow | null>(null)
   const [error, setError] = useState<string | null>(null)
 

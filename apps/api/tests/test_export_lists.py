@@ -152,8 +152,10 @@ async def test_issue_export_flags_overdue_deadlines(
     session: AsyncSession, seeded: None, make_client_for
 ) -> None:
     reporter = await make_user(session, "technical")
+    project_id = (await session.execute(select(Project.id))).scalar_one()
     overdue = Issue(
         code="V-001",
+        project_id=project_id,
         issue_type="contract",
         level=1,
         title="Quá hạn",
@@ -163,6 +165,7 @@ async def test_issue_export_flags_overdue_deadlines(
     )
     fine = Issue(
         code="V-002",
+        project_id=project_id,
         issue_type="operational",
         level=1,
         title="Còn hạn",
@@ -172,6 +175,7 @@ async def test_issue_export_flags_overdue_deadlines(
     )
     done = Issue(
         code="V-003",
+        project_id=project_id,
         issue_type="other",
         level=2,
         title="Xong",

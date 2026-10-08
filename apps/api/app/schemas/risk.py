@@ -32,6 +32,9 @@ class RiskUpdate(BaseModel):
     owner_id: uuid.UUID | None = None
     mitigation: str | None = None
     contingency: str | None = None
+    group_name: str | None = Field(default=None, max_length=100)
+    owner_text: str | None = Field(default=None, max_length=200)
+    note: str | None = None
     status: RiskStatus | None = None
     due_date: date | None = None
 
@@ -61,6 +64,9 @@ class RiskOut(BaseModel):
     owner_id: uuid.UUID | None
     mitigation: str | None
     contingency: str | None
+    group_name: str | None = None
+    owner_text: str | None = None
+    note: str | None = None
     status: RiskStatus
     due_date: date | None
     source: RiskSource

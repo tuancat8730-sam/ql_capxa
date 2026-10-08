@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.scope import current_project_id_or_none
 from app.models import AuditLog
 
 _SECRET_KEYS = ("password", "token", "secret", "hash")
@@ -62,6 +63,7 @@ def record(
 ) -> AuditLog:
     row = AuditLog(
         user_id=user_id,
+        project_id=current_project_id_or_none(),
         action=action,
         entity_type=entity_type,
         entity_id=str(entity_id) if entity_id is not None else None,

@@ -9,6 +9,7 @@ from app.seed.finance import seed_finance
 from app.seed.progress import seed_progress
 from app.seed.project import seed_project
 from app.seed.risks import seed_risks
+from app.seed.sgd_hcm import seed_sgd_hcm
 from app.seed.users import ensure_admin
 
 
@@ -27,7 +28,8 @@ async def main() -> None:
         await seed_checklists(session)
         await seed_progress(session)
         await seed_risks(session)
-    print("Seeded project, packages, contracts, finance, checklists, stages and risks (idempotent)")
+        await seed_sgd_hcm(session)
+    print("Seeded both projects: packages, contracts, finance, stages, risks and the SGD-HCM plan")
     await get_engine().dispose()
 
 

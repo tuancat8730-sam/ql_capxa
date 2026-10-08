@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '@/features/auth/AuthContext'
 import { primaryButton } from '@/features/auth/LoginPage'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/format'
@@ -12,6 +11,7 @@ import { PlanItems } from './PlanItems'
 import { periodText } from './period'
 import { PlanSteps } from './PlanSteps'
 import type { Plan } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 function Info({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -25,10 +25,10 @@ function Info({ label, children }: { label: string; children: React.ReactNode })
 /** Tab "Kế hoạch" of a package: the contractor's delivery plan, tracked step by step. */
 export function PlanTab({ packageId }: { packageId: string }) {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
-  const canUpload = can(user?.role, 'package', 'W')
-  const canTrack = can(user?.role, 'progress', 'W')
+  const canUpload = can(role, 'package', 'W')
+  const canTrack = can(role, 'progress', 'W')
   const [importing, setImporting] = useState(false)
 
   const { data, isPending, isError } = useQuery({

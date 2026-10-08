@@ -1,14 +1,14 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Query, Request
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 
-from app.core.deps import SessionDep, require_roles
+from app.core.deps import ProjectContext, SessionDep, SystemAdmin, project_context
 from app.core.errors import AppError
 from app.core.security import generate_temporary_password, hash_password
-from app.models import User
+from app.models import ProjectMember, User
 from app.schemas.auth import UserOut
 from app.schemas.common import Page, PaginationDep
 from app.schemas.user import TempPasswordOut, UserCreate, UserUpdate, UserWithTempPassword
@@ -16,7 +16,18 @@ from app.services import audit
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-AdminUser = Annotated[User, Depends(require_roles("admin"))]
+AdminUser = SystemAdmin
+
+
+async def _optional_project(
+    admin: AdminUser, session: SessionDep, request: Request
+) -> ProjectContext | None:
+    """The project the admin is working in (X-Project-Id), if there is one at all."""
+    try:
+        return await project_context(admin, session, request.headers.get("x-project-id"))
+    except AppError:
+        return None
+
 
 _TRACKED = ("full_name", "phone", "role", "is_active")
 
@@ -91,6 +102,17 @@ async def create_user(
     except IntegrityError as exc:
         await session.rollback()
         raise AppError(409, "conflict", "Email đã được sử dụng") from exc
+    ctx = await _optional_project(admin, session, request)
+    if ctx is not None and user.role != "admin":  # admins see every project anyway
+        session.add(
+            ProjectMember(
+                project_id=ctx.project.id,
+                user_id=user.id,
+                role=user.role,
+                created_by=admin.id,
+                updated_by=admin.id,
+            )
+        )
     audit.record(
         session,
         action="create",
@@ -126,6 +148,18 @@ async def update_user(
     for field, value in changes.items():
         setattr(user, field, value)
     user.updated_by = admin.id
+    if "role" in changes and changes["role"] is not None:
+        ctx = await _optional_project(admin, session, request)
+        if ctx is not None:  # keep the seat in the current project in step with the account
+            member = (
+                await session.execute(
+                    select(ProjectMember).where(
+                        ProjectMember.project_id == ctx.project.id, ProjectMember.user_id == user.id
+                    )
+                )
+            ).scalar_one_or_none()
+            if member is not None:
+                member.role = changes["role"]
     if changes.get("is_active") is False:
         user.token_version += 1  # kick active sessions
     delta = audit.diff(before, _snapshot(user))

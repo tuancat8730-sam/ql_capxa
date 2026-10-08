@@ -21,6 +21,10 @@ const MATRIX: Record<string, Record<string, string>> = {
   meeting: row('WAWWRRRR'),
   doc_number: row('WRRRR-WR'),
   audit_log: row('RR------'),
+  // software-delivery projects: the schedule, the weekly reports and the open decisions
+  wbs: row('WWRWRW-R'),
+  weekly_report: row('WWWWRRWR'),
+  decision: row('WAWWRRRR'),
 }
 
 const RANK: Record<string, number> = { R: 1, W: 2, A: 3 }

@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
 import { ExportButton } from '@/components/ui/ExportButton'
-import { useAuth } from '@/features/auth/AuthContext'
 import { api, type Page } from '@/lib/api'
 import { formatMoney, NO_DATA } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import { Countdown, GuaranteeCard, GuaranteeStatusBadge } from './GuaranteeCard'
 import { GuaranteeForm } from './GuaranteeForm'
 import type { EffectiveGuaranteeStatus, GuaranteeRow } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const FILTERS: EffectiveGuaranteeStatus[] = ['expiring', 'expired', 'missing', 'valid']
 
@@ -18,8 +18,8 @@ const context = (g: GuaranteeRow) => `Gói ${String(g.package_number).padStart(2
 
 export function GuaranteesPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
-  const canEdit = can(user?.role, 'contract', 'W')
+  const role = useRole()
+  const canEdit = can(role, 'contract', 'W')
   const [status, setStatus] = useState<EffectiveGuaranteeStatus | ''>('')
   const [editing, setEditing] = useState<GuaranteeRow | null>(null)
 
@@ -40,7 +40,7 @@ export function GuaranteesPage() {
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold md:text-2xl">{t('guarantees.title')}</h1>
-        {can(user?.role, 'payment', 'R') && <ExportButton path="/export/ql07.xlsx" label={t('guarantees.exportQl07')} />}
+        {can(role, 'payment', 'R') && <ExportButton path="/export/ql07.xlsx" label={t('guarantees.exportQl07')} />}
       </div>
 
       {data && (

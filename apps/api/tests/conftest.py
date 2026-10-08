@@ -19,8 +19,9 @@ import app.models  # noqa: E402, F401  (register tables)
 from app.core.config import get_settings  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.main import create_app  # noqa: E402
-from app.models import Base, User  # noqa: E402
+from app.models import Base, Project, ProjectMember, User  # noqa: E402
 from app.models.user import ROLES  # noqa: E402
+from app.seed.project import PROJECT  # noqa: E402
 from app.services.storage import MemoryStorage  # noqa: E402
 
 PASSWORD = "Str0ng-Passw0rd!"
@@ -72,6 +73,30 @@ async def client(storage: MemoryStorage) -> AsyncIterator[httpx.AsyncClient]:
         yield c
 
 
+async def seat_in_projects(session: AsyncSession, user: User) -> None:
+    """Give the user a seat (their account role) in every project that already exists."""
+    if user.role == "admin":
+        return
+    for (project_id,) in (await session.execute(select(Project.id))).all():
+        exists = (
+            await session.execute(
+                select(ProjectMember.id).where(
+                    ProjectMember.project_id == project_id, ProjectMember.user_id == user.id
+                )
+            )
+        ).first()
+        if not exists:
+            session.add(ProjectMember(project_id=project_id, user_id=user.id, role=user.role))
+    await session.commit()
+
+
+async def ensure_default_project(session: AsyncSession) -> None:
+    """Most tests just need *a* project to exist: the commune-level one, without its packages."""
+    if (await session.execute(select(Project.id).limit(1))).first() is None:
+        session.add(Project(**PROJECT))
+        await session.commit()
+
+
 async def make_user(
     session: AsyncSession,
     role: str = "viewer",
@@ -79,6 +104,7 @@ async def make_user(
     *,
     must_change_password: bool = False,
     is_active: bool = True,
+    seat: bool = True,
 ) -> User:
     user = User(
         email=email or f"{role}@example.test",
@@ -90,6 +116,8 @@ async def make_user(
     )
     session.add(user)
     await session.commit()
+    if seat:
+        await seat_in_projects(session, user)
     return user
 
 
@@ -102,11 +130,14 @@ def make_client_for(storage: MemoryStorage):
     """Factory: returns an authenticated client for the given role."""
 
     async def _make(session: AsyncSession, role: str) -> httpx.AsyncClient:
-        exists = (
-            await session.execute(select(User.id).where(User.email == f"{role}@example.test"))
-        ).first()
-        if not exists:
+        await ensure_default_project(session)
+        existing = (
+            await session.execute(select(User).where(User.email == f"{role}@example.test"))
+        ).scalar_one_or_none()
+        if existing is None:
             await make_user(session, role)
+        else:  # a project created after the user still needs to seat them
+            await seat_in_projects(session, existing)
         transport = httpx.ASGITransport(app=create_app(storage=storage))
         c = httpx.AsyncClient(transport=transport, base_url="http://test")
         resp = await login(c, f"{role}@example.test")

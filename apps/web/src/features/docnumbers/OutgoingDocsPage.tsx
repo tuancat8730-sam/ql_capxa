@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { type FormEvent, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { ApiError, api, type Page } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const DOC_KINDS = ['CV', 'BC', 'TB', 'BB', 'QD', 'TT', 'KH'] as const
 type DocKind = (typeof DOC_KINDS)[number]
@@ -23,9 +23,9 @@ interface DocNumber {
 
 export function OutgoingDocsPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
-  const canWrite = can(user?.role, 'doc_number', 'W')
+  const canWrite = can(role, 'doc_number', 'W')
   const [kind, setKind] = useState<DocKind>('CV')
   const [subject, setSubject] = useState('')
   const [issuedDate, setIssuedDate] = useState('')

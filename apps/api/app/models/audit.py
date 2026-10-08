@@ -20,6 +20,7 @@ class AuditLog(IdMixin, Base):
             "action IN ('create','update','delete','login','download','export')", name="action"
         ),
         Index("ix_audit_log_ts", "ts"),
+        Index("ix_audit_log_project", "project_id"),
         Index("ix_audit_log_entity", "entity_type", "entity_id"),
     )
 
@@ -27,6 +28,8 @@ class AuditLog(IdMixin, Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    # NULL for events that belong to no project (login, user admin).
+    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     action: Mapped[str] = mapped_column(String(20), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False)
     entity_id: Mapped[str | None] = mapped_column(String(64), nullable=True)

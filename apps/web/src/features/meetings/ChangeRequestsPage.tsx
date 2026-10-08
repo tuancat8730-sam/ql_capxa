@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, ApiError, type Page } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const TYPES = ['model', 'origin', 'allocation', 'schedule', 'other'] as const
 type Status = 'proposed' | 'reviewing' | 'approved' | 'rejected' | 'appendix_signed'
@@ -96,10 +96,10 @@ function NewChange({ onDone }: { onDone: () => void }) {
 
 export function ChangeRequestsPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const qc = useQueryClient()
-  const canWrite = can(user?.role, 'meeting', 'W')
-  const canDecide = can(user?.role, 'meeting', 'A')
+  const canWrite = can(role, 'meeting', 'W')
+  const canDecide = can(role, 'meeting', 'A')
   const [adding, setAdding] = useState(false)
   const [deciding, setDeciding] = useState<{ change: Change; decision: 'approved' | 'rejected' } | null>(null)
   const [note, setNote] = useState('')

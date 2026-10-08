@@ -46,3 +46,11 @@ Ghi theo SPEC mục 0.3: chỗ mơ hồ → chọn phương án mặc định, g
 30. **Kế hoạch Gói 04 tự mâu thuẫn:** hợp đồng kết thúc 13/11/2026 và mục "thời gian triển khai" cũng ghi 05–13/11, nhưng 7 trong 10 bước kết thúc sau 13/11 (muộn nhất 30/11/2026). Hệ thống chỉ hiển thị cảnh báo; cần Giám đốc QLDA xác nhận với nhà thầu (gia hạn hợp đồng hay rút ngắn kế hoạch).
 31. **Bước 10 của Gói 04 không có thời gian** (bàn giao hồ sơ, nghiệm thu hoàn thành): hiện "Chưa có thời gian", không tính trễ cho tới khi có ngày.
 32. **Tệp `.doc` cũ** đọc bằng chương trình `antiword` trong ảnh Docker. Đó là mã C cũ, chỉ cho người có quyền tải kế hoạch (admin, giám đốc, đấu thầu) dùng, chạy trong tiến trình con có giới hạn thời gian 30 giây; nếu muốn bỏ hẳn rủi ro này, yêu cầu nhà thầu gửi `.docx`.
+
+## Phát sinh ở nhiều dự án / SGD-HCM
+27. **Điểm rủi ro của 4 mức** (SGD-HCM): Rất cao = 5×5 = 25, Cao = 4×4 = 16, Trung bình = 3×3 = 9, Thấp = 2×2 = 4. Do ứng dụng gán để dùng lại bảng `risks`; cần xác nhận.
+28. **Kỳ báo cáo tuần** tính từ ngày bắt đầu kế hoạch (25/09/2026, thứ Sáu), mỗi kỳ 7 ngày, đến hết kế hoạch (11 kỳ). Nhà thầu nộp trước 8h00 thứ Sáu (theo họp giao ban 02/10/2026); ứng dụng chưa nhắc theo giờ.
+29. **Mã dự án, chủ đầu tư, hợp đồng** của SGD-HCM: chỉ có tên "Sở GD&ĐT TP.HCM · Liên danh DVN · Crystal giám sát". Mã dự án tạm là `SGD-HCM`; chưa có số hợp đồng, giá trị, bảo lãnh. Dự án loại `software_delivery` không dùng gói thầu và hợp đồng.
+30. **Ai được vào SGD-HCM**: lúc đầu chỉ admin hệ thống; thêm người ở `/admin/projects`.
+31. **Nhật ký (audit) và đăng nhập** không thuộc dự án nào; xem được ở mọi dự án có quyền xem audit.
+32. **Số văn bản đi** hậu tố `QLDA-SGM` vẫn cố định cho mọi dự án; SGD-HCM chưa dùng mục này.

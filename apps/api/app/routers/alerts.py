@@ -8,6 +8,7 @@ from sqlalchemy import case, func, select
 from app.core.deps import MailerDep, SessionDep, require, require_roles
 from app.core.errors import AppError
 from app.core.rbac import Level
+from app.core.scope import current_project_id
 from app.models import Alert, Package, User
 from app.schemas.alert import AlertAssign, AlertOut, AlertSnooze, RefreshOut
 from app.schemas.common import Page, PaginationDep
@@ -36,7 +37,7 @@ async def _alert_or_404(session: SessionDep, alert_id: uuid.UUID) -> tuple[Alert
         await session.execute(
             select(Alert, Package.number)
             .outerjoin(Package, Package.id == Alert.package_id)
-            .where(Alert.id == alert_id)
+            .where(Alert.id == alert_id, Alert.project_id == current_project_id())
         )
     ).first()
     if row is None:
@@ -58,7 +59,11 @@ async def list_alerts(
     assigned_to: uuid.UUID | None = None,
 ) -> Page[AlertOut]:
     """Open and acknowledged alerts by default (`status=all` for history), critical first."""
-    stmt = select(Alert, Package.number).outerjoin(Package, Package.id == Alert.package_id)
+    stmt = (
+        select(Alert, Package.number)
+        .outerjoin(Package, Package.id == Alert.package_id)
+        .where(Alert.project_id == current_project_id())
+    )
     if status in (None, "active"):
         stmt = stmt.where(Alert.status.in_(_DEFAULT_STATUSES))
     elif status != "all":

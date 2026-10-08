@@ -108,6 +108,7 @@ async def update_item(
     item = await session.get(ChecklistItem, item_id)
     if item is None:
         raise AppError(404, "not_found", "Không tìm thấy hạng mục")
+    await package_or_404(session, item.package_id)
     changes = body.model_dump(exclude_unset=True)
     if changes.get("status") is None and "status" in changes:
         raise AppError(422, "validation_error", "Trạng thái không được để trống", ["status"])

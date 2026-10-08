@@ -20,6 +20,7 @@ from app.models import (
     Alert,
     ChecklistItem,
     Contract,
+    DecisionItem,
     Guarantee,
     Holiday,
     Issue,
@@ -28,14 +29,18 @@ from app.models import (
     Payment,
     PlanStep,
     ProgressLog,
+    Project,
+    Risk,
     StagePlan,
 )
 from app.services import alert_rules as rules
+from app.services import delivery, delivery_rules
 from app.services.alert_rules import Candidate
 from app.services.finance import guarantee_findings
 
 logger = logging.getLogger("qlda.alerts")
 
+MILESTONE_ALERT_DAYS = 7
 _LIVE = ("open", "acknowledged", "suppressed")
 _ACTIVE = ("open", "acknowledged")
 
@@ -183,7 +188,7 @@ async def _plan_step_candidates(
 
 
 async def collect_candidates(
-    session: AsyncSession, now: datetime | None = None
+    session: AsyncSession, project_id: uuid.UUID, now: datetime | None = None
 ) -> tuple[list[Candidate], dict[str, Decimal], set[str]]:
     """Every alert that should exist right now.
 
@@ -198,7 +203,9 @@ async def collect_candidates(
     packages = list(
         (
             await session.execute(
-                select(Package).where(Package.deleted_at.is_(None)).order_by(Package.number)
+                select(Package)
+                .where(Package.deleted_at.is_(None), Package.project_id == project_id)
+                .order_by(Package.number)
             )
         )
         .scalars()
@@ -299,7 +306,13 @@ async def collect_candidates(
         )
 
     open_issues = (
-        (await session.execute(select(Issue).where(Issue.status.notin_(("resolved", "closed")))))
+        (
+            await session.execute(
+                select(Issue).where(
+                    Issue.status.notin_(("resolved", "closed")), Issue.project_id == project_id
+                )
+            )
+        )
         .scalars()
         .all()
     )
@@ -347,10 +360,15 @@ def _reopen(alert: Alert, *, clear_ack: bool, clear_snooze: bool, reset_notice: 
 
 
 async def sync_alerts(
-    session: AsyncSession, candidates: list[Candidate], now: datetime
+    session: AsyncSession, project_id: uuid.UUID, candidates: list[Candidate], now: datetime
 ) -> tuple[RunResult, dict[str, Alert]]:
-    """Create/update/reopen/resolve alerts so the table matches `candidates`."""
-    existing = {a.fingerprint: a for a in (await session.execute(select(Alert))).scalars().all()}
+    """Create/update/reopen/resolve the alerts of one project so they match `candidates`."""
+    existing = {
+        a.fingerprint: a
+        for a in (await session.execute(select(Alert).where(Alert.project_id == project_id)))
+        .scalars()
+        .all()
+    }
     wanted = {c.fingerprint for c in candidates}
     created = updated = reopened = resolved = 0
     live: dict[str, Alert] = {}
@@ -359,6 +377,7 @@ async def sync_alerts(
         alert = existing.get(c.fingerprint)
         if alert is None:
             alert = Alert(
+                project_id=project_id,
                 alert_type=c.alert_type,
                 severity=c.severity,
                 entity_type=c.entity_type,
@@ -409,6 +428,7 @@ async def sync_alerts(
 
 async def apply_health(
     session: AsyncSession,
+    project_id: uuid.UUID,
     live: dict[str, Alert],
     gaps: dict[str, Decimal],
     with_contract: set[str],
@@ -419,7 +439,9 @@ async def apply_health(
         if alert.status in _ACTIVE and alert.package_id is not None:
             severities[str(alert.package_id)].append(alert.severity)
     changed = 0
-    result = await session.execute(select(Package).where(Package.deleted_at.is_(None)))
+    result = await session.execute(
+        select(Package).where(Package.deleted_at.is_(None), Package.project_id == project_id)
+    )
     for package in result.scalars():
         pid = str(package.id)
         health = rules.package_health(
@@ -436,15 +458,145 @@ async def apply_health(
     return changed
 
 
-async def run_alerts(session: AsyncSession, now: datetime | None = None) -> RunResult:
-    """One full pass: evaluate every rule, sync alerts, refresh package health, commit."""
+async def collect_delivery_candidates(
+    session: AsyncSession, project_id: uuid.UUID, now: datetime
+) -> list[Candidate]:
+    """Alerts of a software-delivery project: late work, missing reports, stalled decisions."""
+    today = now.astimezone(ZoneInfo(get_settings().app_timezone)).date()
+    tasks = await delivery.load_tasks(session, project_id)
+    out: list[Candidate] = []
+    for t in tasks:
+        v = delivery.view(t)
+        state = delivery_rules.task_state(v, today)
+        if state == "late":
+            days = delivery_rules.late_days(v, today)
+            late = f"quá hạn {days} ngày làm việc" if days else "đã đến hạn mà chưa xong"
+            out.append(
+                Candidate(
+                    "TASK_LATE",
+                    "critical" if t.is_milestone else "warning",
+                    "wbs_task",
+                    str(t.id),
+                    f"{delivery.display_code(t)}: trễ hạn",
+                    f"{t.name} — {late}, hoàn thành {delivery_rules.task_pct(v)}%",
+                    due_date=t.plan_end,
+                )
+            )
+        elif (
+            t.is_milestone
+            and state == "todo"
+            and (t.plan_start - today).days <= MILESTONE_ALERT_DAYS
+        ):
+            n = (t.plan_start - today).days
+            when = "hôm nay" if n == 0 else f"còn {n} ngày"
+            out.append(
+                Candidate(
+                    "MILESTONE_SOON",
+                    "warning" if n <= 3 else "info",
+                    "wbs_task",
+                    str(t.id),
+                    f"Mốc {t.code} sắp đến",
+                    f"{t.name} — {when} ({delivery.dd(t.plan_start)})",
+                    due_date=t.plan_start,
+                )
+            )
+    for week in await delivery.build_weeks(session, project_id, today):
+        if week.state == "missing":
+            out.append(
+                Candidate(
+                    "WEEKLY_REPORT_MISSING",
+                    "warning",
+                    "weekly_report",
+                    week.start.isoformat(),
+                    f"Chưa nhận báo cáo tuần {week.no}",
+                    f"Kỳ {delivery.dd(week.start)} – {delivery.dd(week.end)} đã kết thúc",
+                    due_date=week.end,
+                )
+            )
+    decisions = (
+        await session.execute(
+            select(DecisionItem).where(
+                DecisionItem.project_id == project_id,
+                DecisionItem.status == "pending",
+                DecisionItem.due_date.is_not(None),
+                DecisionItem.due_date < today,
+            )
+        )
+    ).scalars()
+    for d in decisions:
+        out.append(
+            Candidate(
+                "DECISION_OVERDUE",
+                "warning",
+                "decision_item",
+                str(d.id),
+                f"Tồn đọng #{d.no} quá hạn chốt",
+                f"{d.title} — CĐT chưa quyết định, hạn {d.due_date:%d/%m/%Y}",
+                due_date=d.due_date,
+            )
+        )
+    risks = (
+        await session.execute(
+            select(Risk).where(
+                Risk.project_id == project_id,
+                Risk.status != "closed",
+                Risk.score >= delivery.VERY_HIGH_SCORE,
+            )
+        )
+    ).scalars()
+    for r in risks:
+        out.append(
+            Candidate(
+                "RISK_VERY_HIGH",
+                "warning",
+                "risk",
+                str(r.id),
+                f"{r.code}: rủi ro mức rất cao",
+                r.title,
+                due_date=r.due_date,
+            )
+        )
+    return out
+
+
+async def run_project_alerts(
+    session: AsyncSession, project_id: uuid.UUID, now: datetime | None = None
+) -> RunResult:
+    """One full pass for one project: rules, alerts (and package health), commit."""
     now_utc = (now or datetime.now(UTC)).astimezone(UTC)
-    candidates, gaps, with_contract = await collect_candidates(session, now_utc)
-    result, live = await sync_alerts(session, candidates, now_utc)
-    health_changed = await apply_health(session, live, gaps, with_contract)
+    project = await session.get(Project, project_id)
+    if project is not None and project.project_type == "software_delivery":
+        candidates = await collect_delivery_candidates(session, project_id, now_utc)
+        result, _ = await sync_alerts(session, project_id, candidates, now_utc)
+        await session.commit()
+        logger.info("alert run %s: %s", project_id, result)
+        return result
+    candidates, gaps, with_contract = await collect_candidates(session, project_id, now_utc)
+    result, live = await sync_alerts(session, project_id, candidates, now_utc)
+    health_changed = await apply_health(session, project_id, live, gaps, with_contract)
     await session.commit()
     final = RunResult(
         result.created, result.updated, result.reopened, result.resolved, health_changed
     )
-    logger.info("alert run: %s", final)
+    logger.info("alert run %s: %s", project_id, final)
     return final
+
+
+async def run_alerts(
+    session: AsyncSession, now: datetime | None = None, project_id: uuid.UUID | None = None
+) -> RunResult:
+    """Run the engine of every live project (or only `project_id`), summing the results."""
+    stmt = select(Project.id).where(Project.deleted_at.is_(None), Project.is_archived.is_(False))
+    if project_id is not None:
+        stmt = stmt.where(Project.id == project_id)
+    total = RunResult()
+    for (pid,) in (await session.execute(stmt.order_by(Project.created_at))).all():
+        one = await run_project_alerts(session, pid, now)
+        total = RunResult(
+            total.created + one.created,
+            total.updated + one.updated,
+            total.reopened + one.reopened,
+            total.resolved + one.resolved,
+            total.health_changed + one.health_changed,
+        )
+    return total

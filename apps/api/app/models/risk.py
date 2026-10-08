@@ -13,6 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -57,9 +58,10 @@ class Risk(IdMixin, TimestampMixin, Base):
         CheckConstraint("impact BETWEEN 1 AND 5", name="impact_range"),
         CheckConstraint("score = probability * impact", name="score_matches"),
         Index("ix_risks_package", "package_id"),
+        UniqueConstraint("project_id", "code", name="risks_project_code"),
     )
 
-    code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
     project_id: Mapped[uuid.UUID] = _fk("projects", nullable=False)
     package_id: Mapped[uuid.UUID | None] = _fk("packages")
     title: Mapped[str] = mapped_column(Text, nullable=False)
@@ -71,6 +73,10 @@ class Risk(IdMixin, TimestampMixin, Base):
     owner_id: Mapped[uuid.UUID | None] = _fk("users")
     mitigation: Mapped[str | None] = mapped_column(Text, nullable=True)
     contingency: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # free-text fields of software-delivery projects (a theme, the party in charge, a running log)
+    group_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    owner_text: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="open", nullable=False)
     due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     source: Mapped[str] = mapped_column(String(20), default="manual", nullable=False)
@@ -86,9 +92,11 @@ class Issue(IdMixin, TimestampMixin, Base):
         enum_check("status", ISSUE_STATUSES),
         CheckConstraint("level IN (1, 2, 3)", name="level_range"),
         Index("ix_issues_package", "package_id"),
+        UniqueConstraint("project_id", "code", name="issues_project_code"),
     )
 
-    code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    project_id: Mapped[uuid.UUID] = _fk("projects", nullable=False)
     package_id: Mapped[uuid.UUID | None] = _fk("packages")
     issue_type: Mapped[str] = mapped_column(String(30), nullable=False)
     level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
@@ -168,9 +176,11 @@ class ChangeRequest(IdMixin, TimestampMixin, Base):
     __table_args__ = (
         enum_check("change_type", CHANGE_TYPES),
         enum_check("status", CHANGE_STATUSES),
+        UniqueConstraint("project_id", "code", name="change_requests_project_code"),
     )
 
-    code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
+    code: Mapped[str] = mapped_column(String(20), nullable=False)
+    project_id: Mapped[uuid.UUID] = _fk("projects", nullable=False)
     package_id: Mapped[uuid.UUID] = _fk("packages", nullable=False)
     change_type: Mapped[str] = mapped_column(String(20), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)

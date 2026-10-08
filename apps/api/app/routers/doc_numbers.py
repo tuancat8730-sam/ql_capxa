@@ -7,6 +7,7 @@ from sqlalchemy import func, or_, select, text
 
 from app.core.deps import SessionDep, require
 from app.core.rbac import Level
+from app.core.scope import current_project_id
 from app.models import OutgoingDocNumber, User
 from app.schemas.common import Page, PaginationDep
 from app.schemas.doc_number import DocKind, DocNumberIn, DocNumberOut
@@ -35,7 +36,7 @@ async def list_numbers(
     doc_kind: DocKind | None = None,
     q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> Page[DocNumberOut]:
-    stmt = select(OutgoingDocNumber)
+    stmt = select(OutgoingDocNumber).where(OutgoingDocNumber.project_id == current_project_id())
     if year is not None:
         stmt = stmt.where(OutgoingDocNumber.year == year)
     if doc_kind is not None:
@@ -80,17 +81,19 @@ async def issue_number(
     issued = body.issued_date or today_local()
     await session.execute(
         text("SELECT pg_advisory_xact_lock(hashtext(:k))"),
-        {"k": f"doc_no:{issued.year}:{body.doc_kind}"},
+        {"k": f"doc_no:{current_project_id()}:{issued.year}:{body.doc_kind}"},
     )
     last = (
         await session.execute(
             select(func.coalesce(func.max(OutgoingDocNumber.seq), 0)).where(
+                OutgoingDocNumber.project_id == current_project_id(),
                 OutgoingDocNumber.year == issued.year,
                 OutgoingDocNumber.doc_kind == body.doc_kind,
             )
         )
     ).scalar_one()
     row = OutgoingDocNumber(
+        project_id=current_project_id(),
         year=issued.year,
         doc_kind=body.doc_kind,
         seq=last + 1,

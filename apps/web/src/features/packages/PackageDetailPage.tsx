@@ -5,7 +5,6 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { HealthBadge, StatusBadge } from '@/components/ui/StatusBadge'
 import { api, ApiError } from '@/lib/api'
 import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
-import { useAuth } from '@/features/auth/AuthContext'
 import { can } from '@/lib/permissions'
 import { StagesTab } from '@/features/progress/StagesTab'
 import { AccessSection } from './AccessSection'
@@ -15,6 +14,7 @@ import { ContractGuarantees, ContractPayments } from './ContractFinance'
 import { ImportItems } from './ImportItems'
 import { PlanTab } from '@/features/plan/PlanTab'
 import type { ContractDetail, Issue, PackageItem, PackageOverview } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const TABS = ['overview', 'contracts', 'progress', 'plan', 'documents', 'risks', 'payments', 'log'] as const
 type Tab = (typeof TABS)[number]
@@ -71,7 +71,7 @@ function IssueList({ issues }: { issues: Issue[] }) {
 
 function ContractView({ c }: { c: ContractDetail }) {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const end = c.extended_end_date ?? c.planned_end_date
   return (
     <div className="space-y-4">
@@ -136,7 +136,7 @@ function ContractView({ c }: { c: ContractDetail }) {
         <h3 className="mb-2 font-semibold">{t('packages.sections.checks')}</h3>
         <IssueList issues={c.consistency} />
       </div>
-      {can(user?.role, 'contract', 'W') && <ImportItems contractId={c.id} />}
+      {can(role, 'contract', 'W') && <ImportItems contractId={c.id} />}
     </div>
   )
 }
@@ -180,7 +180,7 @@ function OverviewTab({ pkg, contracts }: { pkg: PackageItem; contracts: Contract
 
 export function PackageDetailPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
   const requested = params.get('tab') as Tab | null
@@ -285,7 +285,7 @@ export function PackageDetailPage() {
         {tab === 'documents' && (
           <div className="space-y-6">
             <ChecklistTab packageId={pkg.id} />
-            {pkg.is_sensitive && user?.role === 'admin' && <AccessSection packageId={pkg.id} />}
+            {pkg.is_sensitive && role === 'admin' && <AccessSection packageId={pkg.id} />}
           </div>
         )}
         {!IMPLEMENTED.includes(tab) && <p className="text-muted-foreground">{t('packages.laterMilestone')}</p>}

@@ -24,6 +24,10 @@ SelectionForm = Literal["open_tender", "direct_appointment_short"]
 SelectionMethod = Literal["one_stage_one_envelope", "one_stage_two_envelope", "short_procedure"]
 Health = Literal["green", "amber", "red", "grey"]
 ConsultingRole = Literal["tvqlda", "tvgs", "other"]
+ProjectType = Literal["procurement", "software_delivery"]
+MemberRole = Literal[
+    "admin", "director", "procurement", "technical", "cost", "onsite", "clerk", "viewer"
+]
 
 
 class ProjectOut(BaseModel):
@@ -31,6 +35,8 @@ class ProjectOut(BaseModel):
 
     id: uuid.UUID
     code: str
+    short_name: str | None = None
+    project_type: ProjectType = "procurement"
     name: str
     investor_org_id: uuid.UUID | None
     investor_name: str | None = None
@@ -46,8 +52,48 @@ class ProjectOut(BaseModel):
     package_count: int = 0
 
 
+class ProjectCreate(BaseModel):
+    code: str = Field(min_length=1, max_length=50)
+    name: str = Field(min_length=1)
+    short_name: str | None = Field(default=None, max_length=100)
+    project_type: ProjectType
+    decision_maker: str | None = None
+    total_investment: Money | None = None
+    funding_source: str | None = None
+    start_year: int | None = Field(default=None, ge=2000, le=2100)
+    end_year: int | None = Field(default=None, ge=2000, le=2100)
+    location: str | None = None
+    description: str | None = None
+
+
+class ProjectSummary(BaseModel):
+    """A row of "my projects": enough to draw the project switcher and the menu."""
+
+    id: uuid.UUID
+    code: str
+    name: str
+    short_name: str | None
+    project_type: ProjectType
+    role: MemberRole
+    modules: list[str]
+    is_archived: bool
+
+
+class MemberOut(BaseModel):
+    user_id: uuid.UUID
+    email: str
+    full_name: str
+    role: MemberRole
+    is_active: bool
+
+
+class MemberIn(BaseModel):
+    role: MemberRole
+
+
 class ProjectUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1)
+    short_name: str | None = Field(default=None, max_length=100)
     decision_maker: str | None = None
     total_investment: Money | None = None
     funding_source: str | None = None

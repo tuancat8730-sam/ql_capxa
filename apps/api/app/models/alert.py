@@ -25,6 +25,12 @@ ALERT_TYPES = (
     "CROSS_PKG_DEPENDENCY",
     "PAYMENT_DUE",
     "PLAN_STEP_OVERDUE",
+    # software-delivery projects
+    "TASK_LATE",
+    "MILESTONE_SOON",
+    "WEEKLY_REPORT_MISSING",
+    "DECISION_OVERDUE",
+    "RISK_VERY_HIGH",
 )
 
 
@@ -36,12 +42,16 @@ class Alert(IdMixin, TimestampMixin, Base):
         enum_check("alert_type", ALERT_TYPES),
         Index("ix_alerts_status", "status"),
         Index("ix_alerts_package", "package_id"),
+        Index("ix_alerts_project", "project_id"),
     )
 
     alert_type: Mapped[str] = mapped_column(String(40), nullable=False)
     severity: Mapped[str] = mapped_column(String(10), nullable=False)
     entity_type: Mapped[str] = mapped_column(String(40), nullable=False)
     entity_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False
+    )
     package_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("packages.id"), nullable=True
     )

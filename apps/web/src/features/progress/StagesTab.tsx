@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, ApiError } from '@/lib/api'
 import { formatDate, NO_DATA } from '@/lib/format'
@@ -10,6 +9,7 @@ import { can } from '@/lib/permissions'
 import { StageStatusBadge } from './ProgressPage'
 import { TaskBoard } from './TaskBoard'
 import type { StagePlan, Stages } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 function StageForm({ stage, onDone }: { stage: StagePlan; onDone: () => void }) {
   const { t } = useTranslation()
@@ -127,8 +127,8 @@ function StageForm({ stage, onDone }: { stage: StagePlan; onDone: () => void }) 
 
 export function StagesTab({ packageId }: { packageId: string }) {
   const { t } = useTranslation()
-  const { user } = useAuth()
-  const canWrite = can(user?.role, 'progress', 'W')
+  const role = useRole()
+  const canWrite = can(role, 'progress', 'W')
   const [editing, setEditing] = useState<StagePlan | null>(null)
 
   const { data, isPending, isError } = useQuery({

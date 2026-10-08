@@ -125,3 +125,10 @@ Nguồn: kế hoạch triển khai bàn giao và lắp đặt của nhà thầu 
 - [x] Cảnh báo `PLAN_STEP_OVERDUE` (engine, sức khỏe gói, danh sách cảnh báo, xuất Excel) và mốc "Kế hoạch" trên Dashboard trong 30 ngày tới
 - [x] Giao diện: tab "Kế hoạch" (thông tin chung, tiến độ, các bước theo giai đoạn có trạng thái và cập nhật một chạm, bảng thiết bị, hộp tải tệp có xem trước), Playwright luồng thứ 6
 - Kết quả đọc thử trên hai tệp thật: Gói 04 = 10 hạng mục (tổng 846) và 10 bước; Gói 05 = 9 hạng mục (tổng 751) và 11 bước, không có sai khác.
+
+## Nhiều dự án và dự án SGD-HCM
+Kế hoạch: `/ecc:plan` ngày 08/10/2026. Quyết định: header `X-Project-Id`, vai trò theo dự án, dùng lại bảng `risks`, chỉ admin hệ thống thấy SGD-HCM lúc đầu. Mô tả đầy đủ ở SPEC mục 16.
+- [x] Giai đoạn A – nền tảng: migration 0010 (`project_type`, `project_members`, `project_id` cho `issues`, `change_requests`, `alerts`, `audit_log`, `outgoing_doc_numbers`; mã và số văn bản duy nhất theo dự án; thành viên cũ được chuyển thành ghế dự án cấp xã), `ProjectCtx` thay `get_single_project`, vai trò theo dự án trong `require`, mọi truy vấn và tra cứu theo id đều lọc theo dự án, engine cảnh báo và email theo dự án, audit gắn dự án
+- [x] Giao diện A: bộ chuyển dự án, menu theo module, vai trò theo dự án (`useRole`), trang `/admin/projects` (tạo dự án, thành viên), hàng đợi nhật ký offline ghim đúng dự án
+- [x] Giai đoạn B – `software_delivery`: migration 0011, `/delivery/*`, bộ quy tắc tiến độ, 5 loại cảnh báo, seed SGD-HCM, trang Tổng quan (KPI, đường cong S, cần chú ý, giai đoạn), Gantt, Báo cáo tuần, Rủi ro, Tồn đọng
+- Ghi chú: file HTML gốc chỉ có kế hoạch (44 dòng: 35 đầu việc, 9 mốc); tiến độ thực tế, báo cáo tuần, rủi ro và tồn đọng nằm trong kho dữ liệu của claude.ai nên không nạp được, bắt đầu nhập mới trong ứng dụng.

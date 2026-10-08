@@ -12,6 +12,7 @@ import { alertLink } from './alertLink'
 import { SnoozeSheet } from './SnoozeSheet'
 import { SwipeRow } from './SwipeRow'
 import { type Alert, type AlertSeverity, SEVERITIES } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const SEVERITY_TONE: Record<AlertSeverity, { tone: Tone; icon: string }> = {
   critical: { tone: 'danger', icon: '✕' },
@@ -32,9 +33,10 @@ export function SeverityBadge({ severity }: { severity: AlertSeverity }) {
 export function AlertsPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
-  const canAct = can(user?.role, 'risk', 'W')
-  const canRefresh = user?.role === 'admin' || user?.role === 'director'
+  const canAct = can(role, 'risk', 'W')
+  const canRefresh = role === 'admin' || role === 'director'
   const [severity, setSeverity] = useState<AlertSeverity | ''>('')
   const [history, setHistory] = useState(false)
   const [snoozing, setSnoozing] = useState<Alert | null>(null)

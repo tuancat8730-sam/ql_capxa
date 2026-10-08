@@ -34,6 +34,10 @@ MATRIX: dict[str, dict[str, str]] = {
     "meeting": _row("W", "A", "W", "W", "R", "R", "R", "R"),
     "doc_number": _row("W", "R", "R", "R", "R", "-", "W", "R"),
     "audit_log": _row("R", "R", "-", "-", "-", "-", "-", "-"),
+    # software-delivery projects: the schedule, the weekly reports and the open decisions
+    "wbs": _row("W", "W", "R", "W", "R", "W", "-", "R"),
+    "weekly_report": _row("W", "W", "W", "W", "R", "R", "W", "R"),
+    "decision": _row("W", "A", "W", "W", "R", "R", "R", "R"),
 }
 
 

@@ -5,7 +5,6 @@ import { useSearchParams } from 'react-router-dom'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
 import { ExportButton } from '@/components/ui/ExportButton'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, type Page } from '@/lib/api'
 import { formatDate, NO_DATA } from '@/lib/format'
@@ -13,6 +12,7 @@ import { can } from '@/lib/permissions'
 import { PreviewDialog } from './PreviewDialog'
 import { UploadSheet } from './UploadSheet'
 import { DOC_CATEGORIES, type Download, type DocType, type DocumentItem, fileIcon, formatSize } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -25,10 +25,10 @@ function useDebounced<T>(value: T, ms: number): T {
 
 export function DocumentsPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
   const [params] = useSearchParams()
-  const canWrite = can(user?.role, 'document', 'W')
+  const canWrite = can(role, 'document', 'W')
 
   const [q, setQ] = useState('')
   const [packageId, setPackageId] = useState(params.get('package') ?? '')

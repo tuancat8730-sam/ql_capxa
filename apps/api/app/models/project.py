@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, IdMixin, SoftDeleteMixin, TimestampMixin, enum_check
+from app.models.user import ROLES
 
 ORG_TYPES = (
     "investor",
@@ -50,6 +51,8 @@ PACKAGE_STATUSES = (
 )
 HEALTH_VALUES = ("green", "amber", "red", "grey")
 CONSULTING_ROLES = ("tvqlda", "tvgs", "other")
+# What a project is decides which modules it shows (see app.core.project_types).
+PROJECT_TYPES = ("procurement", "software_delivery")
 
 
 class Organization(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -71,8 +74,16 @@ class Organization(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
 
 class Project(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "projects"
+    __table_args__ = (enum_check("project_type", PROJECT_TYPES),)
 
     code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    short_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    project_type: Mapped[str] = mapped_column(
+        String(30), default="procurement", server_default="procurement", nullable=False
+    )
+    is_archived: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false", nullable=False
+    )
     name: Mapped[str] = mapped_column(Text, nullable=False)
     investor_org_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True
@@ -128,3 +139,21 @@ class Package(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     # CROSS_PKG_DEPENDENCY. NULL for supply packages.
     consulting_role: Mapped[str | None] = mapped_column(String(10), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ProjectMember(IdMixin, TimestampMixin, Base):
+    """Who works on a project and in which role (the role is per project, not global)."""
+
+    __tablename__ = "project_members"
+    __table_args__ = (
+        UniqueConstraint("project_id", "user_id", name="project_user"),
+        enum_check("role", tuple(sorted(ROLES))),
+    )
+
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    role: Mapped[str] = mapped_column(String(20), nullable=False)

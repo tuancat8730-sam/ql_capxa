@@ -4,13 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
 import { ExportButton } from '@/components/ui/ExportButton'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, type Page } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import { IssueSheet, NewIssueSheet } from './IssueSheets'
 import { BOARD_STATUSES, daysUntilDue, FINISHED, type Issue, ISSUE_TYPES } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 /** Deadline in words and colour-independent: "còn 2 ngày", "hết hạn hôm nay", "quá hạn 1 ngày". */
 export function DueLabel({ issue }: { issue: Pick<Issue, 'due_at' | 'status' | 'overdue' | 'overdue_days'> }) {
@@ -53,9 +53,9 @@ export function IssueCard({ i, onOpen, packageLabel }: { i: Issue; onOpen: () =>
 
 export function IssuesPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
-  const canWrite = can(user?.role, 'risk', 'W')
-  const canApprove = can(user?.role, 'risk', 'A')
+  const role = useRole()
+  const canWrite = can(role, 'risk', 'W')
+  const canApprove = can(role, 'risk', 'A')
   const [status, setStatus] = useState('')
   const [level, setLevel] = useState('')
   const [type, setType] = useState('')

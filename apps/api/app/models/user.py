@@ -1,6 +1,7 @@
 """`users` table (SPEC 3.1) plus login-throttle and token-revocation columns."""
 
 from datetime import datetime
+from typing import ClassVar
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,3 +36,14 @@ class User(IdMixin, TimestampMixin, Base):
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Bumped on password change/reset; tokens carry it as `tv` so old tokens stop working.
     token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    # Role in the project of the current request, set by the project context dependency.
+    _project_role: ClassVar[str | None] = None
+
+    def set_project_role(self, role: str) -> None:
+        self.__dict__["_project_role"] = role
+
+    @property
+    def effective_role(self) -> str:
+        """The role that counts for permission checks: the project role, else the global one."""
+        return self.__dict__.get("_project_role") or self.role

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { primaryButton } from '@/features/auth/LoginPage'
 import { GuaranteeCard } from '@/features/finance/GuaranteeCard'
 import { GuaranteeForm } from '@/features/finance/GuaranteeForm'
@@ -12,12 +11,13 @@ import type { Guarantee, Payment } from '@/features/finance/types'
 import { api } from '@/lib/api'
 import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import { useRole } from '@/features/projects/ProjectContext'
 
 export function ContractGuarantees({ contractId }: { contractId: string }) {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const [editing, setEditing] = useState<Guarantee | 'new' | null>(null)
-  const canEdit = can(user?.role, 'contract', 'W')
+  const canEdit = can(role, 'contract', 'W')
   const { data, isPending, isError } = useQuery({
     queryKey: ['contract-guarantees', contractId],
     queryFn: () => api.get<Guarantee[]>(`/contracts/${contractId}/guarantees`),

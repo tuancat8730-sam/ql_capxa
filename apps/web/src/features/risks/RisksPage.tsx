@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { ResponsiveList } from '@/components/responsive/ResponsiveList'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, type Page } from '@/lib/api'
 import { formatDate, NO_DATA } from '@/lib/format'
@@ -13,6 +12,7 @@ import { ExportButton } from '@/components/ui/ExportButton'
 import { RiskForm } from './RiskForm'
 import { RiskMatrix } from './RiskMatrix'
 import { RISK_CATEGORIES, RISK_STATUSES, type Matrix, type Risk, type RiskLevel } from './types'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const LEVEL_TONE: Record<RiskLevel, { tone: Tone; icon: string }> = {
   low: { tone: 'neutral', icon: '○' },
@@ -32,10 +32,10 @@ export function RiskLevelBadge({ risk }: { risk: Pick<Risk, 'level' | 'score'> }
 
 export function RisksPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
-  const canWrite = can(user?.role, 'risk', 'W')
-  const canClose = can(user?.role, 'risk', 'A')
+  const canWrite = can(role, 'risk', 'W')
+  const canClose = can(role, 'risk', 'A')
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
   const [category, setCategory] = useState('')

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level
+from app.core.scope import current_project_id
 from app.models import Contract, Document, Package, ProgressLog, StagePlan, Task, User
 from app.routers.packages import package_or_404
 from app.schemas.common import Page, PaginationDep
@@ -149,6 +150,7 @@ async def update_stage(
     stage = await session.get(StagePlan, stage_id)
     if stage is None:
         raise AppError(404, "not_found", "Không tìm thấy giai đoạn")
+    await package_or_404(session, stage.package_id)
     changes = body.model_dump(exclude_unset=True)
     _reject_nulls(changes, _STAGE_NON_NULL)
     before = audit.snapshot(stage, _STAGE_TRACKED)
@@ -298,6 +300,7 @@ async def _task_or_404(session: AsyncSession, task_id: uuid.UUID) -> Task:
     task = await session.get(Task, task_id)
     if task is None or task.deleted_at is not None:
         raise AppError(404, "not_found", "Không tìm thấy công việc")
+    await package_or_404(session, task.package_id)
     return task
 
 
@@ -497,7 +500,8 @@ async def update_log(
     log = await session.get(ProgressLog, log_id)
     if log is None:
         raise AppError(404, "not_found", "Không tìm thấy nhật ký")
-    if log.author_id != user.id and user.role not in {"admin", "director"}:
+    await package_or_404(session, log.package_id)
+    if log.author_id != user.id and user.effective_role not in {"admin", "director"}:
         raise AppError(403, "forbidden", "Chỉ người viết hoặc quản lý mới được sửa nhật ký")
     changes = body.model_dump(exclude_unset=True)
     _reject_nulls(changes, frozenset({"progress_pct"}))
@@ -526,7 +530,9 @@ async def timeline(_: PackageReader, session: SessionDep) -> TimelineOut:
     packages = (
         (
             await session.execute(
-                select(Package).where(Package.deleted_at.is_(None)).order_by(Package.number)
+                select(Package)
+                .where(Package.deleted_at.is_(None), Package.project_id == current_project_id())
+                .order_by(Package.number)
             )
         )
         .scalars()

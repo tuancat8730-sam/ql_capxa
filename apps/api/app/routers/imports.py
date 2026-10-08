@@ -11,7 +11,8 @@ from sqlalchemy import delete, func, select
 from app.core.deps import SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level
-from app.models import Contract, ContractItem, User
+from app.models import ContractItem, User
+from app.routers.contracts import contract_or_404
 from app.schemas.types import Number
 from app.services import audit
 from app.services.import_items import (
@@ -99,9 +100,7 @@ async def import_contract_items(
 
     `replace=true` removes the contract's existing lines first, otherwise new lines are appended.
     """
-    contract = await session.get(Contract, contract_id)
-    if contract is None or contract.deleted_at is not None:
-        raise AppError(404, "not_found", "Không tìm thấy hợp đồng")
+    contract = await contract_or_404(session, contract_id)
     if not (file.filename or "").lower().endswith(".xlsx"):
         raise AppError(422, "validation_error", "Chỉ nhận tệp Excel .xlsx", ["file"])
     content = await file.read(MAX_BYTES + 1)

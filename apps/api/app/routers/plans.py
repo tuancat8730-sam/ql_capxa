@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level
-from app.models import PlanStep, User
+from app.models import PackagePlan, PlanStep, User
 from app.routers.packages import package_or_404
 from app.schemas.plan import (
     ImportPreview,
@@ -200,6 +200,10 @@ async def update_step(
     step = await session.get(PlanStep, step_id)
     if step is None:
         raise AppError(404, "not_found", "Không tìm thấy bước kế hoạch")
+    plan = await session.get(PackagePlan, step.plan_id)
+    if plan is None:
+        raise AppError(404, "not_found", "Không tìm thấy bước kế hoạch")
+    await package_or_404(session, plan.package_id)
     changes = body.model_dump(exclude_unset=True)
     before = audit.snapshot(step, _STEP_TRACKED)
     for field, value in changes.items():

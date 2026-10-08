@@ -6,11 +6,12 @@ from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import SessionDep, require
+from app.core.deps import ProjectDep, SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level
+from app.core.scope import current_project_id
 from app.models import Contract, Package, User
-from app.routers.project import _project_out, get_single_project
+from app.routers.project import _project_out
 from app.schemas.common import Page, PaginationDep
 from app.schemas.contract import ContractOut
 from app.schemas.project import PackageListItem, PackageOut, PackageUpdate, ProjectOut
@@ -36,7 +37,11 @@ class PackageOverview(BaseModel):
 
 async def package_or_404(session: AsyncSession, package_id: uuid.UUID) -> Package:
     package = await session.get(Package, package_id)
-    if package is None or package.deleted_at is not None:
+    if (
+        package is None
+        or package.deleted_at is not None
+        or package.project_id != current_project_id()
+    ):
         raise AppError(404, "not_found", "Không tìm thấy gói thầu")
     return package
 
@@ -64,7 +69,9 @@ async def list_packages(
     status: str | None = None,
     health: str | None = None,
 ) -> Page[PackageListItem]:
-    stmt = select(Package).where(Package.deleted_at.is_(None))
+    stmt = select(Package).where(
+        Package.deleted_at.is_(None), Package.project_id == current_project_id()
+    )
     if q:
         like = f"%{q.strip()}%"
         stmt = stmt.where(or_(Package.name.ilike(like), Package.winning_org_text.ilike(like)))
@@ -140,10 +147,12 @@ async def update_package(
 
 @router.get("/{package_id}/overview", response_model=PackageOverview)
 async def package_overview(
-    package_id: uuid.UUID, _: Reader, session: SessionDep
+    package_id: uuid.UUID,
+    _: Reader,
+    session: SessionDep,
+    project: ProjectDep,
 ) -> PackageOverview:
     package = await package_or_404(session, package_id)
-    project = await get_single_project(session)
     contracts = [await contract_out(session, c) for c in await _contracts_of(session, package.id)]
     return PackageOverview(
         package=PackageOut.model_validate(package),

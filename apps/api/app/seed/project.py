@@ -12,7 +12,15 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Contract, ContractParty, Organization, Package, Project
+from app.models import (
+    Contract,
+    ContractParty,
+    Organization,
+    Package,
+    Project,
+    ProjectMember,
+    User,
+)
 
 D = Decimal
 
@@ -29,6 +37,8 @@ CONTRACTORS = {
 
 PROJECT: dict[str, Any] = {
     "code": "8200685",
+    "short_name": "Cấp xã Lâm Đồng",
+    "project_type": "procurement",
     "name": (
         "Đầu tư trang thiết bị phục vụ hoạt động của chính quyền cấp xã và triển khai "
         "Đề án 06 trên địa bàn tỉnh Lâm Đồng"
@@ -258,24 +268,53 @@ async def _org(session: AsyncSession, name: str, org_type: str) -> Organization:
     return org
 
 
-def _backfill(obj: Package | Contract, fields: dict[str, Any]) -> None:
+def _backfill(obj: Package | Contract | Project, fields: dict[str, Any]) -> None:
     """Fill columns added after the first seed; values someone already entered are kept."""
     for key, value in fields.items():
         if getattr(obj, key) is None:
             setattr(obj, key, value)
 
 
+async def capxa_project(session: AsyncSession) -> Project | None:
+    """The commune-level project the other seeds hang their data on."""
+    return (
+        await session.execute(select(Project).where(Project.code == PROJECT["code"]))
+    ).scalar_one_or_none()
+
+
+async def ensure_members(session: AsyncSession, project: Project) -> int:
+    """Seat every non-admin user in a project nobody works on yet, with their account role.
+
+    A project that already has members is left alone, so removing someone in the application is
+    not undone by the next seed. System admins need no seat: they see every project.
+    """
+    taken = (
+        await session.execute(
+            select(ProjectMember.id).where(ProjectMember.project_id == project.id).limit(1)
+        )
+    ).first()
+    if taken is not None:
+        return 0
+    added = 0
+    for user in (await session.execute(select(User).where(User.role != "admin"))).scalars():
+        session.add(ProjectMember(project_id=project.id, user_id=user.id, role=user.role))
+        added += 1
+    await session.flush()
+    return added
+
+
 async def seed_project(session: AsyncSession) -> Project:
     investor = await _org(session, INVESTOR, "investor")
     orgs = {name: await _org(session, name, kind) for name, kind in CONTRACTORS.items()}
 
-    project = (
-        await session.execute(select(Project).where(Project.code == PROJECT["code"]))
-    ).scalar_one_or_none()
+    project = await capxa_project(session)
     if project is None:
         project = Project(investor_org_id=investor.id, **PROJECT)
         session.add(project)
         await session.flush()
+    else:
+        _backfill(project, {"investor_org_id": investor.id, **PROJECT})  # a bare project row
+    await ensure_members(session, project)
 
     for seed in PACKAGES:
         package = (

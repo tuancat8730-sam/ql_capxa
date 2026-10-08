@@ -12,6 +12,7 @@ from app.core.config import get_settings
 from app.core.deps import SessionDep, require, require_roles
 from app.core.errors import AppError
 from app.core.rbac import Level, can
+from app.core.scope import current_project_id
 from app.models import Holiday, Issue, IssueEvent, Package, User
 from app.routers.risks import next_code
 from app.schemas.common import Page, PaginationDep
@@ -68,7 +69,7 @@ def _out(issue: Issue, now: datetime | None = None) -> IssueOut:
 
 async def _issue_or_404(session: AsyncSession, issue_id: uuid.UUID) -> Issue:
     issue = await session.get(Issue, issue_id)
-    if issue is None:
+    if issue is None or issue.project_id != current_project_id():
         raise AppError(404, "not_found", "Không tìm thấy vướng mắc")
     return issue
 
@@ -117,8 +118,10 @@ def _audit(
 async def _check_refs(
     session: AsyncSession, package_id: uuid.UUID | None, assignee: uuid.UUID | None
 ) -> None:
-    if package_id is not None and await session.get(Package, package_id) is None:
-        raise AppError(422, "validation_error", "Gói thầu không tồn tại", ["package_id"])
+    if package_id is not None:
+        package = await session.get(Package, package_id)
+        if package is None or package.project_id != current_project_id():
+            raise AppError(422, "validation_error", "Gói thầu không tồn tại", ["package_id"])
     if assignee is not None:
         user = await session.get(User, assignee)
         if user is None or not user.is_active:
@@ -138,7 +141,7 @@ async def list_issues(
     overdue: bool | None = None,
     q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> Page[IssueOut]:
-    stmt = select(Issue)
+    stmt = select(Issue).where(Issue.project_id == current_project_id())
     for column, value in (
         (Issue.package_id, package_id),
         (Issue.status, status),
@@ -191,6 +194,7 @@ async def create_issue(
         due = body.due_at
     issue = Issue(
         code=await next_code(session, Issue, "V"),
+        project_id=current_project_id(),
         package_id=body.package_id,
         issue_type=body.issue_type,
         level=body.level,
@@ -287,7 +291,7 @@ async def update_issue(
         if (
             new_status == "closed"
             and issue.level == 3
-            and not can(user.role, "risk", Level.APPROVE)
+            and not can(user.effective_role, "risk", Level.APPROVE)
         ):
             raise AppError(403, "forbidden", "Chỉ Giám đốc QLDA được đóng vướng mắc cấp 3")
     if "due_at" in changes and changes["due_at"] != issue.due_at and not reason:

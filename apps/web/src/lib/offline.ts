@@ -6,7 +6,7 @@
  * then the log is posted with the resulting document ids; a crash in between resumes where it left.
  */
 import { type DBSchema, type IDBPDatabase, openDB } from 'idb'
-import { api, ApiError, request } from './api'
+import { api, ApiError, getProjectId, request } from './api'
 import { UploadError, uploadFile } from './upload'
 
 export interface DailyLogForm {
@@ -41,6 +41,8 @@ export interface OutboxItem {
   existing_id?: string
   attempts: number
   created_at: number
+  /** Project the log belongs to; it is sent to that one even after the user switches. */
+  project_id?: string
 }
 
 export interface Draft {
@@ -144,6 +146,7 @@ export async function enqueue(form: DailyLogForm, photos: PendingPhoto[]): Promi
     status: 'pending',
     attempts: 0,
     created_at: Date.now(),
+    project_id: getProjectId() ?? undefined,
   }
   await put(item)
   await deleteDraft(form.package_id, form.log_date)
@@ -165,14 +168,18 @@ function isNetworkFailure(err: unknown): boolean {
 
 async function uploadPhoto(item: OutboxItem, photo: PendingPhoto): Promise<string> {
   const file = new File([photo.data], photo.name, { type: photo.type })
-  const ref = await uploadFile(file, { packageId: item.form.package_id })
+  const ref = await uploadFile(file, { packageId: item.form.package_id, projectId: item.project_id })
   try {
-    const doc = await api.post<{ id: string }>('/documents', {
-      ...ref,
-      package_id: item.form.package_id,
-      doc_type: 'photo',
-      title: `Ảnh nhật ký ${item.form.log_date}`,
-    })
+    const doc = await api.post<{ id: string }>(
+      '/documents',
+      {
+        ...ref,
+        package_id: item.form.package_id,
+        doc_type: 'photo',
+        title: `Ảnh nhật ký ${item.form.log_date}`,
+      },
+      pinned(item),
+    )
     return doc.id
   } catch (err) {
     // The same bytes were already stored (e.g. we crashed after confirming): reuse that document.
@@ -181,6 +188,11 @@ async function uploadPhoto(item: OutboxItem, photo: PendingPhoto): Promise<strin
     }
     throw err
   }
+}
+
+/** Request options that keep a queued item on its own project. */
+function pinned(item: OutboxItem): { headers?: Record<string, string> } {
+  return item.project_id ? { headers: { 'X-Project-Id': item.project_id } } : {}
 }
 
 function logBody(item: OutboxItem, attachments: string[]) {
@@ -211,7 +223,7 @@ async function send(item: OutboxItem): Promise<void> {
     }
     const attachments = photos.map((p) => p.document_id!)
     await request('POST', `/packages/${current.form.package_id}/progress-logs`, logBody(current, attachments), {
-      headers: { 'Idempotency-Key': current.client_id },
+      headers: { 'Idempotency-Key': current.client_id, ...pinned(current).headers },
     })
     await put({ ...current, status: 'sent' })
   } catch (err) {
@@ -260,8 +272,11 @@ export async function resolveConflict(clientId: string, choice: 'overwrite' | 'm
     weather: f.weather || null,
   }
   if (choice === 'merge') {
-    const old = await api.get<{ summary: string | null; issues: string | null; next_steps: string | null; attachments: string[] }>(
+    const old = await request<{ summary: string | null; issues: string | null; next_steps: string | null; attachments: string[] }>(
+      'GET',
       `/progress-logs/${item.existing_id}`,
+      undefined,
+      pinned(item),
     )
     const join = (a: string | null, b: string) => [a, b].filter(Boolean).join('\n')
     body = {
@@ -275,7 +290,7 @@ export async function resolveConflict(clientId: string, choice: 'overwrite' | 'm
     body.attachments = attachments
   }
   try {
-    await api.patch(`/progress-logs/${item.existing_id}`, body)
+    await request('PATCH', `/progress-logs/${item.existing_id}`, body, pinned(item))
     await put({ ...item, status: 'sent', existing_id: undefined })
   } catch (err) {
     if (isNetworkFailure(err)) return // stays in conflict; the user can try again

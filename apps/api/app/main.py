@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.core.errors import register_error_handlers
+from app.core.scope import set_project_id
 from app.core.security_headers import security_headers
 from app.routers import (
     alerts,
@@ -11,6 +12,7 @@ from app.routers import (
     checklists,
     contracts,
     dashboard,
+    delivery,
     doc_numbers,
     documents,
     export_lists,
@@ -53,11 +55,15 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
 
     @app.middleware("http")
     async def add_security_headers(request: Request, call_next):  # type: ignore[no-untyped-def]
+        set_project_id(None)  # never inherit the project of an earlier request in this task
         response = await call_next(request)
         for name, value in security_headers(
             request.url.path, secure=settings.cookie_secure
         ).items():
             response.headers.setdefault(name, value)
+        if request.url.path.startswith("/api/"):
+            # Answers depend on the project: a cache (the PWA's included) must not mix them up.
+            response.headers.append("Vary", "X-Project-Id")
         return response
 
     if settings.alert_refresh_on_write:
@@ -89,6 +95,8 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
     api.include_router(users.router)
     api.include_router(audit.router)
     api.include_router(project.router)
+    api.include_router(project.projects_router)
+    api.include_router(delivery.router)
     api.include_router(packages.router)
     api.include_router(contracts.router)
     api.include_router(finance.router)

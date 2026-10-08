@@ -4,13 +4,14 @@ Recipients are the assignee of an alert and every active director.
 """
 
 import logging
+import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.models import Alert, User
+from app.models import Alert, ProjectMember, User
 from app.services.mailer import Email, Mailer
 
 logger = logging.getLogger("qlda.notify")
@@ -19,19 +20,39 @@ SEVERITY_LABEL = {"critical": "Nghiêm trọng", "warning": "Cảnh báo", "info
 _RANK = {"critical": 0, "warning": 1, "info": 2}
 
 
-async def _directors(session: AsyncSession) -> list[User]:
+async def _directors(
+    session: AsyncSession, project_ids: set[uuid.UUID]
+) -> list[tuple[User, uuid.UUID]]:
+    """Active directors of the given projects, as (user, project id) pairs."""
     rows = await session.execute(
-        select(User).where(User.role == "director", User.is_active.is_(True)).order_by(User.email)
+        select(User, ProjectMember.project_id)
+        .join(ProjectMember, ProjectMember.user_id == User.id)
+        .where(
+            ProjectMember.role == "director",
+            ProjectMember.project_id.in_(project_ids),
+            User.is_active.is_(True),
+        )
+        .order_by(User.email)
     )
-    return list(rows.scalars().all())
+    return [(u, pid) for u, pid in rows.all()]
 
 
 async def _recipients_for(
     session: AsyncSession, alerts: list[Alert]
 ) -> dict[str, tuple[User, list[Alert]]]:
-    """email -> (user, alerts they should hear about): directors get all, assignees their own."""
-    directors = await _directors(session)
-    by_email: dict[str, tuple[User, list[Alert]]] = {u.email: (u, list(alerts)) for u in directors}
+    """email -> (user, alerts they should hear about).
+
+    Directors hear about every alert of their projects, assignees about their own.
+    """
+    by_email: dict[str, tuple[User, list[Alert]]] = {}
+    for director, project_id in await _directors(session, {a.project_id for a in alerts}):
+        mine = [a for a in alerts if a.project_id == project_id]
+        if director.email in by_email:
+            by_email[director.email][1].extend(
+                a for a in mine if a not in by_email[director.email][1]
+            )
+        else:
+            by_email[director.email] = (director, mine)
     assignee_ids = {a.assigned_to for a in alerts if a.assigned_to}
     if assignee_ids:
         users = (await session.execute(select(User).where(User.id.in_(assignee_ids)))).scalars()

@@ -4,12 +4,16 @@ import asyncio
 import os
 import sys
 
+from sqlalchemy import select
+
 from app.core.db import get_engine, get_sessionmaker
 from app.core.security import hash_password
-from app.models import User
+from app.models import Project, ProjectMember, User
 
 PASSWORD = "E2e-Passw0rd!x"
 ROLES = ("director", "technical", "onsite", "clerk", "viewer", "procurement", "cost")
+# Works on both projects, as director in the commune project and as technician in SGD-HCM.
+MULTI = "multi"
 
 
 async def main() -> None:
@@ -19,20 +23,39 @@ async def main() -> None:
             f"refusing to seed e2e users into {url.rsplit('/', 1)[-1] or 'an unknown database'}"
         )
     async with get_sessionmaker()() as session:
-        for role in ROLES:
+        projects = {
+            p.project_type: p for p in (await session.execute(select(Project))).scalars().all()
+        }
+        users: dict[str, User] = {}
+        for role in (*ROLES, MULTI):
+            users[role] = User(
+                email=f"{role}@e2e.test",
+                full_name=f"E2E {role}",
+                role="director" if role == MULTI else role,
+                is_active=True,
+                password_hash=hash_password(PASSWORD),
+                must_change_password=False,
+            )
+            session.add(users[role])
+        await session.flush()
+        for role in ROLES:  # everyone works on the commune project, like before
             session.add(
-                User(
-                    email=f"{role}@e2e.test",
-                    full_name=f"E2E {role}",
-                    role=role,
-                    is_active=True,
-                    password_hash=hash_password(PASSWORD),
-                    must_change_password=False,
+                ProjectMember(
+                    project_id=projects["procurement"].id, user_id=users[role].id, role=role
                 )
             )
+        multi = users[MULTI]
+        session.add(
+            ProjectMember(project_id=projects["procurement"].id, user_id=multi.id, role="director")
+        )
+        session.add(
+            ProjectMember(
+                project_id=projects["software_delivery"].id, user_id=multi.id, role="technical"
+            )
+        )
         await session.commit()
     await get_engine().dispose()
-    print(f"seeded {len(ROLES)} e2e users")
+    print(f"seeded {len(ROLES) + 1} e2e users")
 
 
 if __name__ == "__main__":

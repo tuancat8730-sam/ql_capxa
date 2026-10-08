@@ -11,10 +11,10 @@ from openpyxl.utils import get_column_letter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import SessionDep, require
+from app.core.deps import ProjectDep, SessionDep, require
 from app.core.rbac import Level
+from app.core.scope import current_project_id
 from app.models import Contract, Document, Package, StagePlan, User
-from app.routers.project import get_single_project
 from app.services import audit
 from app.services.finance import today_local
 
@@ -78,7 +78,9 @@ async def collect_ql06(session: AsyncSession, today: date) -> list[Ql06Row]:
     packages = (
         (
             await session.execute(
-                select(Package).where(Package.deleted_at.is_(None)).order_by(Package.number)
+                select(Package)
+                .where(Package.deleted_at.is_(None), Package.project_id == current_project_id())
+                .order_by(Package.number)
             )
         )
         .scalars()
@@ -203,9 +205,10 @@ def build_ql06(project_name: str, rows: list[Ql06Row], today: date) -> bytes:
 
 
 @router.get("/export/ql06.xlsx")
-async def export_ql06(request: Request, user: PackageReader, session: SessionDep) -> Response:
+async def export_ql06(
+    request: Request, user: PackageReader, session: SessionDep, project: ProjectDep
+) -> Response:
     today = today_local()
-    project = await get_single_project(session)
     rows = await collect_ql06(session, today)
     content = build_ql06(project.name, rows, today)
     audit.record(

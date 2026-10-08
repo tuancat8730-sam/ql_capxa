@@ -9,12 +9,13 @@ from decimal import Decimal
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import ColumnElement, case, func, select
+from sqlalchemy import ColumnElement, and_, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.core.deps import SessionDep, require
+from app.core.deps import ProjectDep, SessionDep, require
 from app.core.rbac import Level
+from app.core.scope import contract_ids, current_project_id, package_ids
 from app.models import (
     ActionItem,
     Alert,
@@ -23,6 +24,7 @@ from app.models import (
     DisbursementPlan,
     Guarantee,
     Issue,
+    Meeting,
     Organization,
     Package,
     PackagePlan,
@@ -32,7 +34,6 @@ from app.models import (
     StagePlan,
     User,
 )
-from app.routers.project import get_single_project
 from app.schemas.alert import AlertCounts, AlertOut
 from app.schemas.dashboard import (
     CashflowMonth,
@@ -65,7 +66,9 @@ _CLOSED_PACKAGE = ("settled", "cancelled")
 
 async def _packages(session: AsyncSession) -> list[Package]:
     rows = await session.execute(
-        select(Package).where(Package.deleted_at.is_(None)).order_by(Package.number)
+        select(Package)
+        .where(Package.deleted_at.is_(None), Package.project_id == current_project_id())
+        .order_by(Package.number)
     )
     return list(rows.scalars().all())
 
@@ -80,16 +83,28 @@ async def _sum(
 
 
 async def _finance(session: AsyncSession, today: date) -> DashFinance:
-    live_pkg = Package.deleted_at.is_(None)
-    live_contract = Contract.deleted_at.is_(None)
-    plan_rows = list((await session.execute(select(DisbursementPlan))).scalars().all())
+    live_pkg = and_(Package.deleted_at.is_(None), Package.project_id == current_project_id())
+    live_contract = and_(Contract.deleted_at.is_(None), Contract.package_id.in_(package_ids()))
+    plan_rows = list(
+        (
+            await session.execute(
+                select(DisbursementPlan).where(DisbursementPlan.project_id == current_project_id())
+            )
+        )
+        .scalars()
+        .all()
+    )
     planned_total = sum((r.planned_amount for r in plan_rows), Decimal(0))
     planned_to_date = sum(
         (r.planned_amount for r in plan_rows if (r.year, r.month) <= (today.year, today.month)),
         Decimal(0),
     )
     paid = await _sum(
-        session, Payment.amount, Payment.status == "paid", Payment.payment_type.in_(_PAID_KINDS)
+        session,
+        Payment.amount,
+        Payment.status == "paid",
+        Payment.payment_type.in_(_PAID_KINDS),
+        Payment.contract_id.in_(contract_ids()),
     )
     rate = (paid / planned_to_date * 100).quantize(Decimal("0.01")) if planned_to_date else None
     return DashFinance(
@@ -135,7 +150,11 @@ async def _milestones(session: AsyncSession, today: date) -> list[Milestone]:
     contracts = await session.execute(
         select(Contract, Package)
         .join(Package, Package.id == Contract.package_id)
-        .where(Contract.deleted_at.is_(None), Package.status.notin_(_CLOSED_PACKAGE))
+        .where(
+            Contract.deleted_at.is_(None),
+            Package.status.notin_(_CLOSED_PACKAGE),
+            Package.project_id == current_project_id(),
+        )
     )
     for contract, package in contracts.all():
         end = contract.extended_end_date or contract.planned_end_date
@@ -145,21 +164,33 @@ async def _milestones(session: AsyncSession, today: date) -> list[Milestone]:
     guarantees = await session.execute(
         select(Guarantee, Contract.package_id)
         .join(Contract, Contract.id == Guarantee.contract_id)
-        .where(Guarantee.status.notin_(("released", "missing")), Guarantee.expiry_date.is_not(None))
+        .where(
+            Guarantee.status.notin_(("released", "missing")),
+            Guarantee.expiry_date.is_not(None),
+            Contract.package_id.in_(package_ids()),
+        )
     )
     for g, package_id in guarantees.all():
         title = f"Hết hạn bảo lãnh {g.guarantee_type}"
         add(g.expiry_date, "guarantee_expiry", title, package_id, "guarantee", g.id)
 
     stages = await session.execute(
-        select(StagePlan).where(StagePlan.status != "done", StagePlan.planned_end.is_not(None))
+        select(StagePlan).where(
+            StagePlan.status != "done",
+            StagePlan.planned_end.is_not(None),
+            StagePlan.package_id.in_(package_ids()),
+        )
     )
     for s in stages.scalars():
         title = f"Hạn giai đoạn {s.name}"
         add(s.planned_end, "stage_end", title, s.package_id, "stage_plan", s.id)
 
     issues = await session.execute(
-        select(Issue).where(Issue.status.notin_(("resolved", "closed")), Issue.due_at.is_not(None))
+        select(Issue).where(
+            Issue.status.notin_(("resolved", "closed")),
+            Issue.due_at.is_not(None),
+            Issue.project_id == current_project_id(),
+        )
     )
     for issue in issues.scalars():
         if issue.due_at is not None:
@@ -167,7 +198,16 @@ async def _milestones(session: AsyncSession, today: date) -> list[Milestone]:
             add(issue.due_at.date(), "issue_due", title, issue.package_id, "issue", issue.id)
 
     actions = await session.execute(
-        select(ActionItem).where(ActionItem.status == "open", ActionItem.due_date.is_not(None))
+        select(ActionItem).where(
+            ActionItem.status == "open",
+            ActionItem.due_date.is_not(None),
+            or_(
+                ActionItem.package_id.in_(package_ids()),
+                ActionItem.meeting_id.in_(
+                    select(Meeting.id).where(Meeting.project_id == current_project_id())
+                ),
+            ),
+        )
     )
     for a in actions.scalars():
         title = f"Hạn đầu việc: {a.title}"
@@ -176,7 +216,11 @@ async def _milestones(session: AsyncSession, today: date) -> list[Milestone]:
     payments = await session.execute(
         select(Payment, Contract.package_id)
         .join(Contract, Contract.id == Payment.contract_id)
-        .where(Payment.status.in_(("planned", "requested")), Payment.due_date.is_not(None))
+        .where(
+            Payment.status.in_(("planned", "requested")),
+            Payment.due_date.is_not(None),
+            Contract.package_id.in_(package_ids()),
+        )
     )
     for p, package_id in payments.all():
         add(p.due_date, "payment_due", "Hạn đợt thanh toán", package_id, "payment", p.id)
@@ -184,7 +228,11 @@ async def _milestones(session: AsyncSession, today: date) -> list[Milestone]:
     plan_steps = await session.execute(
         select(PlanStep, PackagePlan.package_id)
         .join(PackagePlan, PackagePlan.id == PlanStep.plan_id)
-        .where(PlanStep.status != "done", PlanStep.end_date.is_not(None))
+        .where(
+            PlanStep.status != "done",
+            PlanStep.end_date.is_not(None),
+            PackagePlan.package_id.in_(package_ids()),
+        )
     )
     for ps, package_id in plan_steps.all():
         first = ps.content.strip().splitlines()[0].lstrip("-– ").strip()[:80]
@@ -200,10 +248,9 @@ async def _milestones(session: AsyncSession, today: date) -> list[Milestone]:
 
 
 @router.get("/summary", response_model=SummaryOut)
-async def summary(_: Reader, session: SessionDep) -> SummaryOut:
+async def summary(_: Reader, session: SessionDep, project: ProjectDep) -> SummaryOut:
     """Project card, the strip of packages, finance figures and the next 30 days (4.2 #1-4)."""
     today = today_local()
-    project = await get_single_project(session)
     investor = (
         await session.get(Organization, project.investor_org_id)
         if project.investor_org_id
@@ -274,7 +321,8 @@ async def cashflow(_: Reader, session: SessionDep) -> CashflowOut:
     """
     planned: dict[tuple[int, int], Decimal] = {}
     typed_actual: dict[tuple[int, int], Decimal] = {}
-    for row in (await session.execute(select(DisbursementPlan))).scalars():
+    plan_stmt = select(DisbursementPlan).where(DisbursementPlan.project_id == current_project_id())
+    for row in (await session.execute(plan_stmt)).scalars():
         key = (row.year, row.month)
         planned[key] = planned.get(key, Decimal(0)) + row.planned_amount
         if row.actual_amount is not None:
@@ -286,6 +334,7 @@ async def cashflow(_: Reader, session: SessionDep) -> CashflowOut:
             Payment.status == "paid",
             Payment.payment_type.in_(_PAID_KINDS),
             Payment.paid_date.is_not(None),
+            Payment.contract_id.in_(contract_ids()),
         )
     )
     for paid_date, amount in payments.all():
@@ -313,7 +362,13 @@ async def top_risks(_: Reader, session: SessionDep) -> TopRisksOut:
     """Five highest-scoring open risks and the 5x5 heat map (4.2 #6)."""
     now = datetime.now(UTC)
     open_risks = list(
-        (await session.execute(select(Risk).where(Risk.status != "closed"))).scalars().all()
+        (
+            await session.execute(
+                select(Risk).where(Risk.status != "closed", Risk.project_id == current_project_id())
+            )
+        )
+        .scalars()
+        .all()
     )
     ranked = sorted(open_risks, key=lambda r: (-r.score, r.code))[:TOP_RISKS]
     items = []
@@ -338,7 +393,9 @@ async def top_risks(_: Reader, session: SessionDep) -> TopRisksOut:
 @router.get("/alerts", response_model=DashAlertsOut)
 async def dashboard_alerts(_: Reader, session: SessionDep) -> DashAlertsOut:
     """Open alerts by severity and the ten most serious ones (4.2 #5)."""
-    active = Alert.status.in_(("open", "acknowledged"))
+    active = and_(
+        Alert.status.in_(("open", "acknowledged")), Alert.project_id == current_project_id()
+    )
     grouped = (
         await session.execute(
             select(Alert.severity, func.count()).where(active).group_by(Alert.severity)
@@ -378,7 +435,11 @@ async def missing_documents(_: Reader, session: SessionDep) -> MissingDocsOut:
                 func.count(ChecklistItem.id).filter(ChecklistItem.status == "missing"),
             )
             .join(ChecklistItem, ChecklistItem.package_id == Package.id)
-            .where(Package.deleted_at.is_(None), ChecklistItem.required.is_(True))
+            .where(
+                Package.deleted_at.is_(None),
+                Package.project_id == current_project_id(),
+                ChecklistItem.required.is_(True),
+            )
             .group_by(Package.id, Package.number, Package.name)
             .order_by(Package.number)
         )

@@ -16,11 +16,21 @@ export class ApiError extends Error {
 const BASE = '/api/v1'
 
 let accessToken: string | null = null
+let projectId: string | null = null
 let refreshing: Promise<string | null> | null = null
 let onSessionExpired: (() => void) | null = null
 
 export function setAccessToken(token: string | null) {
   accessToken = token
+}
+
+/** The project every request works on (sent as X-Project-Id); null before one is chosen. */
+export function setProjectId(id: string | null) {
+  projectId = id
+}
+
+export function getProjectId(): string | null {
+  return projectId
 }
 
 export function setSessionExpiredHandler(handler: (() => void) | null) {
@@ -54,6 +64,7 @@ async function send(
   const isForm = body instanceof FormData // the browser sets the multipart boundary itself
   if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+  if (projectId) headers['X-Project-Id'] ??= projectId // a caller may pin another project
   return fetch(`${BASE}${path}`, {
     method,
     headers,
@@ -103,11 +114,12 @@ export async function download(path: string): Promise<{ blob: Blob; filename: st
 
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
-  post: <T>(path: string, body?: unknown, opts?: { retryOn401?: boolean }) =>
+  post: <T>(path: string, body?: unknown, opts?: { retryOn401?: boolean; headers?: Record<string, string> }) =>
     request<T>('POST', path, body, opts),
   postForm: <T>(path: string, form: FormData) => request<T>('POST', path, form),
   patch: <T>(path: string, body: unknown) => request<T>('PATCH', path, body),
   put: <T>(path: string, body: unknown) => request<T>('PUT', path, body),
+  delete: <T = void>(path: string) => request<T>('DELETE', path),
   request,
   refresh: refreshAccessToken,
 }

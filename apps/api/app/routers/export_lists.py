@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.deps import SessionDep, require
 from app.core.rbac import Level
+from app.core.scope import contract_ids, current_project_id, package_ids
 from app.models import (
     Alert,
     ChecklistItem,
@@ -22,10 +23,10 @@ from app.models import (
     Issue,
     Package,
     Payment,
+    Project,
     Risk,
     User,
 )
-from app.routers.project import get_single_project
 from app.services import audit
 from app.services.documents import accessible_package_ids, can_view
 from app.services.finance import today_local
@@ -126,7 +127,9 @@ async def _finish(
 
 
 async def _numbers(session: AsyncSession) -> dict[object, int]:
-    rows = await session.execute(select(Package.id, Package.number))
+    rows = await session.execute(
+        select(Package.id, Package.number).where(Package.project_id == current_project_id())
+    )
     return {pid: n for pid, n in rows.all()}
 
 
@@ -135,7 +138,8 @@ async def _user_names(session: AsyncSession) -> dict[object, str]:
 
 
 async def _subtitle(session: AsyncSession) -> str:
-    project = await get_single_project(session)
+    project = await session.get(Project, current_project_id())
+    assert project is not None
     return f"{project.name} — xuất ngày {today_local():%d/%m/%Y}"
 
 
@@ -177,15 +181,24 @@ async def export_ql07(request: Request, user: PaymentReader, session: SessionDep
         await session.execute(
             select(Contract, Package)
             .join(Package, Package.id == Contract.package_id)
-            .where(Contract.deleted_at.is_(None), Package.deleted_at.is_(None))
+            .where(
+                Contract.deleted_at.is_(None),
+                Package.deleted_at.is_(None),
+                Package.project_id == current_project_id(),
+            )
             .order_by(Package.number, Contract.contract_no)
         )
     ).all()
     guarantees: dict[object, list[Guarantee]] = defaultdict(list)
-    for g in (await session.execute(select(Guarantee))).scalars():
+    for g in (
+        await session.execute(select(Guarantee).where(Guarantee.contract_id.in_(contract_ids())))
+    ).scalars():
         guarantees[g.contract_id].append(g)
     paid: dict[object, dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
-    for p in (await session.execute(select(Payment).where(Payment.status == "paid"))).scalars():
+    paid_stmt = select(Payment).where(
+        Payment.status == "paid", Payment.contract_id.in_(contract_ids())
+    )
+    for p in (await session.execute(paid_stmt)).scalars():
         paid[p.contract_id][p.payment_type] += p.amount
 
     rows: list[Row] = []
@@ -235,7 +248,15 @@ async def export_risks(request: Request, user: RiskReader, session: SessionDep) 
     numbers = await _numbers(session)
     names = await _user_names(session)
     risks = (
-        (await session.execute(select(Risk).order_by(Risk.score.desc(), Risk.code))).scalars().all()
+        (
+            await session.execute(
+                select(Risk)
+                .where(Risk.project_id == current_project_id())
+                .order_by(Risk.score.desc(), Risk.code)
+            )
+        )
+        .scalars()
+        .all()
     )
     columns = (
         Col("Mã", "text", 9),
@@ -283,7 +304,15 @@ async def export_issues(request: Request, user: RiskReader, session: SessionDep)
     names = await _user_names(session)
     tz = ZoneInfo(get_settings().app_timezone)
     now = datetime.now(UTC)
-    issues = (await session.execute(select(Issue).order_by(Issue.code))).scalars().all()
+    issues = (
+        (
+            await session.execute(
+                select(Issue).where(Issue.project_id == current_project_id()).order_by(Issue.code)
+            )
+        )
+        .scalars()
+        .all()
+    )
     columns = (
         Col("Mã", "text", 9),
         Col("Gói", "text", 9),
@@ -330,7 +359,15 @@ async def export_alerts(request: Request, user: PackageReader, session: SessionD
     tz = ZoneInfo(get_settings().app_timezone)
     order = {"critical": 0, "warning": 1, "info": 2}
     open_alerts = (
-        (await session.execute(select(Alert).where(Alert.status != "resolved"))).scalars().all()
+        (
+            await session.execute(
+                select(Alert).where(
+                    Alert.status != "resolved", Alert.project_id == current_project_id()
+                )
+            )
+        )
+        .scalars()
+        .all()
     )
     alerts = sorted(open_alerts, key=lambda a: (order[a.severity], a.due_date or _MAX_DATE))
     columns = (
@@ -366,12 +403,29 @@ async def export_alerts(request: Request, user: PackageReader, session: SessionD
 @router.get("/checklist.xlsx")
 async def export_checklist(request: Request, user: DocumentReader, session: SessionDep) -> Response:
     """Checklist items per package; the file behind a line is never named, only its date."""
-    packages = {p.id: p for p in (await session.execute(select(Package))).scalars()}
-    items = (await session.execute(select(ChecklistItem))).scalars().all()
+    packages = {
+        p.id: p
+        for p in (
+            await session.execute(select(Package).where(Package.project_id == current_project_id()))
+        ).scalars()
+    }
+    items = (
+        (
+            await session.execute(
+                select(ChecklistItem).where(ChecklistItem.package_id.in_(package_ids()))
+            )
+        )
+        .scalars()
+        .all()
+    )
     docs = {
         d.id: d
         for d in (
-            await session.execute(select(Document).where(Document.deleted_at.is_(None)))
+            await session.execute(
+                select(Document).where(
+                    Document.deleted_at.is_(None), Document.project_id == current_project_id()
+                )
+            )
         ).scalars()
     }
     today = today_local()

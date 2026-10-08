@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { useRole } from '@/features/projects/ProjectContext'
 import { useAuth } from './AuthContext'
 
 interface RequireAuthProps {
@@ -10,6 +11,7 @@ interface RequireAuthProps {
 export function RequireAuth({ roles }: RequireAuthProps) {
   const { t } = useTranslation()
   const { status, user } = useAuth()
+  const role = useRole()
   const location = useLocation()
 
   if (status === 'loading') {
@@ -22,7 +24,7 @@ export function RequireAuth({ roles }: RequireAuthProps) {
   if (status === 'anon' || !user) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />
   }
-  if (roles && !roles.includes(user.role)) {
+  if (roles && !(role && roles.includes(role))) {
     return (
       <p role="alert" className="p-6 text-danger">
         {t('auth.forbidden')}

@@ -6,7 +6,9 @@ import { GlobalSearch } from '@/features/search/GlobalSearch'
 import { useAlertBadge } from '@/features/alerts/useAlertCount'
 import { startAutoSync } from '@/lib/offline'
 import { OfflineBanner } from './OfflineBanner'
-import { moreNav, type NavItem, primaryNav, sidebarNav } from './nav'
+import { useProjects } from '@/features/projects/ProjectContext'
+import { type NavItem, navFor } from './nav'
+import { ProjectSwitcher } from './ProjectSwitcher'
 
 const touchTarget = 'min-h-11 min-w-11'
 
@@ -35,7 +37,7 @@ function BottomNavLink({ item, badge = 0 }: { item: NavItem; badge?: number }) {
   )
 }
 
-function MoreSheet({ onClose }: { onClose: () => void }) {
+function MoreSheet({ items, onClose }: { items: NavItem[]; onClose: () => void }) {
   const { t } = useTranslation()
   return (
     <div role="dialog" aria-modal="true" aria-label={t('nav.more')} className="fixed inset-0 z-40">
@@ -58,7 +60,7 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
         <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {moreNav.map((item) => {
+          {items.map((item) => {
             const Icon = item.icon
             return (
               <li key={item.to}>
@@ -83,6 +85,8 @@ export function AppShell() {
   const { t } = useTranslation()
   const [moreOpen, setMoreOpen] = useState(false)
   const alertBadge = useAlertBadge()
+  const { current } = useProjects()
+  const nav = navFor(current?.modules)
 
   // Send queued daily logs on start, when the network returns and periodically (SPEC 15.7).
   useEffect(() => startAutoSync(), [])
@@ -96,7 +100,7 @@ export function AppShell() {
         </div>
         <nav aria-label={t('app.name')} className="flex-1 overflow-y-auto px-2">
           <ul className="space-y-1">
-            {sidebarNav.map((item) => {
+            {nav.all.map((item) => {
               const Icon = item.icon
               return (
                 <li key={item.to}>
@@ -121,7 +125,8 @@ export function AppShell() {
       </aside>
 
       <main className="mx-auto w-full max-w-[1440px] px-4 pb-24 pt-4 md:px-6 md:pb-8">
-        <div className="mb-3 flex justify-end">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <ProjectSwitcher />
           <GlobalSearch />
         </div>
         <OfflineBanner />
@@ -132,7 +137,7 @@ export function AppShell() {
         aria-label={t('app.name')}
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-background md:hidden"
       >
-        {primaryNav.map((item) => (
+        {nav.primary.map((item) => (
           <BottomNavLink key={item.to} item={item} badge={item.to === '/alerts' ? alertBadge : 0} />
         ))}
         <button
@@ -145,7 +150,7 @@ export function AppShell() {
           <span>{t('nav.more')}</span>
         </button>
       </nav>
-      {moreOpen && <MoreSheet onClose={() => setMoreOpen(false)} />}
+      {moreOpen && <MoreSheet items={nav.more} onClose={() => setMoreOpen(false)} />}
     </div>
   )
 }

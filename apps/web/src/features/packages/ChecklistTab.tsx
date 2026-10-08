@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { primaryButton } from '@/features/auth/LoginPage'
 import { PreviewDialog } from '@/features/documents/PreviewDialog'
 import { UploadSheet } from '@/features/documents/UploadSheet'
@@ -11,6 +10,7 @@ import type { Checklist, ChecklistItem } from '@/features/documents/types'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const TONE: Record<ChecklistItem['status'], { tone: Tone; icon: string }> = {
   received: { tone: 'success', icon: '✓' },
@@ -20,9 +20,9 @@ const TONE: Record<ChecklistItem['status'], { tone: Tone; icon: string }> = {
 
 export function ChecklistTab({ packageId }: { packageId: string }) {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const role = useRole()
   const queryClient = useQueryClient()
-  const canWrite = can(user?.role, 'document', 'W')
+  const canWrite = can(role, 'document', 'W')
   const [uploadFor, setUploadFor] = useState<ChecklistItem | null>(null)
   const [viewing, setViewing] = useState<{ id: string; title: string } | null>(null)
 

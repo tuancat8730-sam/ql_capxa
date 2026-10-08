@@ -24,6 +24,15 @@ export function alertLink(a: Pick<Alert, 'alert_type' | 'entity_type' | 'package
       return '/daily-log'
     case 'REPORT_DUE':
       return '/progress'
+    case 'TASK_LATE':
+    case 'MILESTONE_SOON':
+      return '/schedule'
+    case 'WEEKLY_REPORT_MISSING':
+      return '/weekly-reports'
+    case 'DECISION_OVERDUE':
+      return '/decisions'
+    case 'RISK_VERY_HIGH':
+      return '/risks'
     default:
       return pkg ?? '/alerts'
   }

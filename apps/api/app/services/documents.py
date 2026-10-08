@@ -128,16 +128,16 @@ async def accessible_package_ids(session: AsyncSession, user: User) -> set[uuid.
 
 def can_view(user: User, doc: Document, access_ids: set[uuid.UUID]) -> bool:
     if doc.confidentiality == "normal":
-        return can(user.role, "document", Level.READ)
+        return can(user.effective_role, "document", Level.READ)
     return can_touch_sensitive(user, doc.package_id, access_ids, Level.READ)
 
 
 def can_touch_sensitive(
     user: User, package_id: uuid.UUID | None, access_ids: set[uuid.UUID], level: Level
 ) -> bool:
-    if not can(user.role, "sensitive_document", level):
+    if not can(user.effective_role, "sensitive_document", level):
         return False
-    if needs_assignment(user.role, "sensitive_document"):
+    if needs_assignment(user.effective_role, "sensitive_document"):
         return package_id is not None and package_id in access_ids
     return True
 
@@ -147,18 +147,20 @@ def can_write(
 ) -> bool:
     if confidentiality == "sensitive":
         return can_touch_sensitive(user, package_id, access_ids, Level.WRITE)
-    return can(user.role, "document", Level.WRITE)
+    return can(user.effective_role, "document", Level.WRITE)
 
 
 def visible_clause(user: User, access_ids: set[uuid.UUID]) -> ColumnElement[bool]:
     """SQL twin of `can_view`: used for search so hidden files never leak through matches."""
     normal = (
-        Document.confidentiality == "normal" if can(user.role, "document", Level.READ) else false()
+        Document.confidentiality == "normal"
+        if can(user.effective_role, "document", Level.READ)
+        else false()
     )
-    if not can(user.role, "sensitive_document", Level.READ):
+    if not can(user.effective_role, "sensitive_document", Level.READ):
         return normal
     sensitive = Document.confidentiality == "sensitive"
-    if needs_assignment(user.role, "sensitive_document"):
+    if needs_assignment(user.effective_role, "sensitive_document"):
         sensitive = and_(sensitive, Document.package_id.in_(access_ids or {uuid.UUID(int=0)}))
     return or_(normal, sensitive)
 

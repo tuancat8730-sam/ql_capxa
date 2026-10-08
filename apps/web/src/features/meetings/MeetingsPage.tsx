@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { BottomSheet } from '@/components/responsive/BottomSheet'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { useAuth } from '@/features/auth/AuthContext'
 import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, type Page } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import { useRole } from '@/features/projects/ProjectContext'
 
 const TYPES = ['kickoff', 'package_kickoff', 'weekly', 'issue_resolution', 'other'] as const
 
@@ -188,8 +188,8 @@ function MeetingDetail({ meeting, canWrite }: { meeting: Meeting; canWrite: bool
 
 export function MeetingsPage() {
   const { t } = useTranslation()
-  const { user } = useAuth()
-  const canWrite = can(user?.role, 'meeting', 'W')
+  const role = useRole()
+  const canWrite = can(role, 'meeting', 'W')
   const [adding, setAdding] = useState(false)
   const [open, setOpen] = useState<string | null>(null)
 

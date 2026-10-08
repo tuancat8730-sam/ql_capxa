@@ -3,12 +3,13 @@ from datetime import UTC, date, datetime
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Request, Response
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import SessionDep, require
+from app.core.deps import ProjectDep, SessionDep, require
 from app.core.errors import AppError
 from app.core.rbac import Level
+from app.core.scope import current_project_id, package_ids
 from app.models import (
     ActionItem,
     ChangeRequest,
@@ -18,7 +19,7 @@ from app.models import (
     Package,
     User,
 )
-from app.routers.project import get_single_project
+from app.routers.contracts import contract_or_404
 from app.routers.risks import next_code
 from app.schemas.common import Page, PaginationDep
 from app.schemas.risk import (
@@ -64,8 +65,10 @@ def _audit(
 
 
 async def _check_package(session: AsyncSession, package_id: uuid.UUID | None) -> None:
-    if package_id is not None and await session.get(Package, package_id) is None:
-        raise AppError(422, "validation_error", "Gói thầu không tồn tại", ["package_id"])
+    if package_id is not None:
+        package = await session.get(Package, package_id)
+        if package is None or package.project_id != current_project_id():
+            raise AppError(422, "validation_error", "Gói thầu không tồn tại", ["package_id"])
 
 
 async def _check_owner(session: AsyncSession, owner_id: uuid.UUID | None) -> None:
@@ -101,7 +104,7 @@ async def _open_actions(
 
 async def _meeting_or_404(session: AsyncSession, meeting_id: uuid.UUID) -> Meeting:
     meeting = await session.get(Meeting, meeting_id)
-    if meeting is None:
+    if meeting is None or meeting.project_id != current_project_id():
         raise AppError(404, "not_found", "Không tìm thấy cuộc họp")
     return meeting
 
@@ -116,7 +119,7 @@ async def list_meetings(
     date_from: date | None = None,
     date_to: date | None = None,
 ) -> Page[MeetingOut]:
-    stmt = select(Meeting)
+    stmt = select(Meeting).where(Meeting.project_id == current_project_id())
     if package_id:
         stmt = stmt.where(Meeting.package_id == package_id)
     if meeting_type:
@@ -148,10 +151,13 @@ async def list_meetings(
 
 @router.post("/meetings", response_model=MeetingOut, status_code=201)
 async def create_meeting(
-    body: MeetingIn, request: Request, user: Writer, session: SessionDep
+    body: MeetingIn,
+    request: Request,
+    user: Writer,
+    session: SessionDep,
+    project: ProjectDep,
 ) -> MeetingOut:
     await _check_package(session, body.package_id)
-    project = await get_single_project(session)
     data = body.model_dump(exclude_unset=True, mode="json")
     meeting = Meeting(
         project_id=project.id,
@@ -225,6 +231,15 @@ async def _action_or_404(session: AsyncSession, action_id: uuid.UUID) -> ActionI
     item = await session.get(ActionItem, action_id)
     if item is None:
         raise AppError(404, "not_found", "Không tìm thấy đầu việc")
+    in_project = False
+    if item.meeting_id is not None:
+        meeting = await session.get(Meeting, item.meeting_id)
+        in_project = meeting is not None and meeting.project_id == current_project_id()
+    elif item.package_id is not None:
+        package = await session.get(Package, item.package_id)
+        in_project = package is not None and package.project_id == current_project_id()
+    if not in_project:
+        raise AppError(404, "not_found", "Không tìm thấy đầu việc")
     return item
 
 
@@ -280,7 +295,14 @@ async def list_actions(
 ) -> Page[ActionOut]:
     """All action items, e.g. the overdue ones for the dashboard (SPEC 4.11)."""
     today = today_local()
-    stmt = select(ActionItem)
+    stmt = select(ActionItem).where(
+        or_(
+            ActionItem.package_id.in_(package_ids()),
+            ActionItem.meeting_id.in_(
+                select(Meeting.id).where(Meeting.project_id == current_project_id())
+            ),
+        )
+    )
     if status:
         stmt = stmt.where(ActionItem.status == status)
     if owner_id:
@@ -348,7 +370,7 @@ async def delete_action(
 
 async def _change_or_404(session: AsyncSession, change_id: uuid.UUID) -> ChangeRequest:
     change = await session.get(ChangeRequest, change_id)
-    if change is None:
+    if change is None or change.project_id != current_project_id():
         raise AppError(404, "not_found", "Không tìm thấy yêu cầu thay đổi")
     return change
 
@@ -365,6 +387,12 @@ async def _check_change_refs(
         amendment = await session.get(ContractAmendment, data["amendment_id"])
         if amendment is None:
             raise AppError(422, "validation_error", "Phụ lục không tồn tại", ["amendment_id"])
+        try:
+            await contract_or_404(session, amendment.contract_id)
+        except AppError as exc:
+            raise AppError(
+                422, "validation_error", "Phụ lục không tồn tại", ["amendment_id"]
+            ) from exc
     if package_id is not None:
         await _check_package(session, package_id)
 
@@ -378,7 +406,7 @@ async def list_changes(
     status: str | None = None,
     change_type: str | None = None,
 ) -> Page[ChangeOut]:
-    stmt = select(ChangeRequest)
+    stmt = select(ChangeRequest).where(ChangeRequest.project_id == current_project_id())
     if package_id:
         stmt = stmt.where(ChangeRequest.package_id == package_id)
     if status:
@@ -413,6 +441,7 @@ async def create_change(
     await _check_change_refs(session, data, body.package_id)
     change = ChangeRequest(
         code=await next_code(session, ChangeRequest, "C"),
+        project_id=current_project_id(),
         created_by=user.id,
         updated_by=user.id,
         **data,
