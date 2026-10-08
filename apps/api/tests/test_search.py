@@ -98,13 +98,13 @@ async def test_finds_a_package_by_contractor_without_accents(
     session: AsyncSession, seeded: dict[int, Package], make_client_for
 ) -> None:
     c = await make_client_for(session, "viewer")
-    data = (await c.get("/api/v1/search", params={"q": "an lap thinh"})).json()
+    data = (await c.get("/api/v1/search", params={"q": "quang trung"})).json()
     group = kinds(data)["package"]
     assert group["total"] == 1
     hit = group["items"][0]
     assert hit["package_number"] == 1 and hit["title"].startswith("Gói 01")
-    assert hit["package_id"] == str(seeded[1].id) and "An Lập Thịnh" in hit["snippet"]
-    assert data["query"] == "an lap thinh"
+    assert hit["package_id"] == str(seeded[1].id) and "Quang Trung" in hit["snippet"]
+    assert data["query"] == "quang trung"
 
 
 async def test_finds_contracts_and_risks_and_groups_them_by_kind(

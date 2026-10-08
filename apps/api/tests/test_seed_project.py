@@ -1,5 +1,6 @@
 """M2 acceptance: the seed shows all 8 packages and the 7.5 flags appear where SPEC 14 says."""
 
+from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -43,67 +44,83 @@ async def test_project_card(session: AsyncSession, seeded: dict[int, Package]) -
 async def test_eight_packages_with_prices(seeded: dict[int, Package]) -> None:
     assert sorted(seeded) == [1, 2, 3, 4, 5, 6, 7, 8]
     assert {n: p.package_price for n, p in seeded.items()} == {
-        1: D(237_382_337),
-        2: D(270_141_231),
-        3: D(117_472_203_146),
+        1: D(556_000_000),
+        2: D(70_000_000),
+        3: D(430_000_000),
         4: D(62_298_200_000),
         5: D(14_946_900_000),
         6: D(1_820_685_517),
-        7: D(509_634_139),
-        8: D(720_713_320),
+        7: D(509_000_000),
+        8: D(710_000_000),
     }
     assert {n: p.winning_price for n, p in seeded.items()} == {
-        1: D(237_382_337),
-        2: None,
-        3: None,
+        1: D(556_000_000),
+        2: D(70_000_000),
+        3: D(430_000_000),
         4: D(51_505_400_000),
         5: D(13_599_975_000),
         6: D(1_726_920_000),
-        7: None,
-        8: None,
+        7: D(509_000_000),
+        8: D(710_000_000),
     }
 
 
-async def test_unknown_values_stay_null_not_invented(
-    session: AsyncSession, seeded: dict[int, Package]
+LISTED = {  # "Sửa thông tin trên web": firm, value, start, end, days
+    1: ("Công ty Cổ phần Tư vấn Quang Trung", 556_000_000, (2026, 6, 15), (2026, 7, 30), 45),
+    2: ("Công ty TNHH Hưng Dũng Lâm Đồng", 70_000_000, (2026, 6, 15), (2026, 7, 15), 30),
+    3: (
+        "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam",
+        430_000_000,
+        (2026, 6, 15),
+        (2026, 7, 15),
+        30,
+    ),
+    7: ("Sài Gòn Mới", 509_000_000, (2026, 9, 15), (2026, 12, 14), 90),
+    8: ("Công ty TNHH Kiểm toán Tư vấn Rồng Việt", 710_000_000, (2026, 9, 15), (2026, 12, 14), 90),
+}
+
+
+@pytest.mark.parametrize("number", sorted(LISTED))
+async def test_listed_consulting_packages_carry_firm_value_and_period(
+    number: int, session: AsyncSession, seeded: dict[int, Package]
 ) -> None:
-    for number in (7, 8):
-        contract = await contract_of(session, seeded[number])
-        assert contract is not None and contract.value is None
-    assert await contract_of(session, seeded[3]) is None
-
-
-async def test_package_03_is_grey_with_reason(seeded: dict[int, Package]) -> None:
-    p3 = seeded[3]
-    assert p3.health == "grey" and p3.health_reason == "Chưa có hợp đồng"
-    assert p3.etbmt_no == "IB2600424701"
-    assert p3.status == "bidding" and p3.current_stage == "S2_SELECTION"
+    org, value, start, end, days = LISTED[number]
+    package = seeded[number]
+    assert package.package_type == "consulting" and package.winning_org_text == org
+    assert package.status == "contract_signed"
+    contract = await contract_of(session, package)
+    assert contract is not None and contract.value == D(value)
+    assert contract.effective_date == date(*start) and contract.planned_end_date == date(*end)
+    assert contract.duration_days == days and contract.end_date_override is True
+    party = (
+        await session.execute(
+            select(Organization.name)
+            .join(ContractParty, ContractParty.organization_id == Organization.id)
+            .where(ContractParty.contract_id == contract.id)
+        )
+    ).scalar_one()
+    assert party == org
 
 
 async def test_package_05_is_sensitive_only(seeded: dict[int, Package]) -> None:
     assert [n for n, p in seeded.items() if p.is_sensitive] == [5]
 
 
-async def test_flags_appear_on_package_02_and_04(
+async def test_package_04_end_date_text_discrepancy_is_flagged(
     session: AsyncSession, seeded: dict[int, Package]
 ) -> None:
-    f2 = await flags(session, 2, seeded)
-    assert {
-        "DURATION_NE_KHLCNT",
-        "INVESTOR_ACCOUNT_NE_TREASURY",
-        "LUMP_SUM_WITH_PRICE_ADJUSTMENT",
-    } <= set(f2)
     assert await flags(session, 4, seeded) == {"END_DATE_MISMATCH": "warning"}
 
 
-async def test_package_01_text_date_discrepancy_is_flagged(
-    session: AsyncSession, seeded: dict[int, Package]
+@pytest.mark.parametrize("number", sorted(LISTED))
+async def test_listed_end_dates_are_kept_and_only_noted(
+    number: int, session: AsyncSession, seeded: dict[int, Package]
 ) -> None:
-    # SPEC 14.3: text says 18/9, rule gives 17/9.
-    assert await flags(session, 1, seeded) == {"END_DATE_MISMATCH": "warning"}
+    # The list gives start + days as the end date, so the override is an info flag, not a warning.
+    assert await flags(session, number, seeded) == {"END_DATE_MISMATCH": "info"}
 
 
-@pytest.mark.parametrize("number", [5, 7, 8])
+@pytest.mark.parametrize("number", [5])
 async def test_clean_contracts_have_no_flags(
     number: int, session: AsyncSession, seeded: dict[int, Package]
 ) -> None:
@@ -146,7 +163,7 @@ async def test_consortium_shares(session: AsyncSession, seeded: dict[int, Packag
 
 async def test_seed_is_idempotent(session: AsyncSession, seeded: dict[int, Package]) -> None:
     await seed_project(session)
-    for model, expected in ((Package, 8), (Contract, 7), (ContractParty, 5), (Project, 1)):
+    for model, expected in ((Package, 8), (Contract, 8), (ContractParty, 10), (Project, 1)):
         count = (await session.execute(select(func.count()).select_from(model))).scalar_one()
         assert count == expected
     orgs = (await session.execute(select(func.count()).select_from(Organization))).scalar_one()

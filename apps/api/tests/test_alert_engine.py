@@ -44,7 +44,7 @@ async def test_seed_raises_the_expected_alerts(session: AsyncSession, seeded: No
     result = await run_alerts(session, NOW)
     assert result.created > 0
 
-    p5, p4, p7 = [await package(session, n) for n in (5, 4, 7)]
+    p5, p4 = [await package(session, n) for n in (5, 4)]
 
     short = await alerts(session, "ADVANCE_GUARANTEE_SHORT")
     assert short and all(a.severity == "critical" and a.package_id == p5.id for a in short)
@@ -53,8 +53,9 @@ async def test_seed_raises_the_expected_alerts(session: AsyncSession, seeded: No
     assert {p4.id, p5.id} <= set(missing)
     assert all(a.severity == "critical" for a in missing.values())
 
-    (cross,) = await alerts(session, "CROSS_PKG_DEPENDENCY")
-    assert cross.package_id == p7.id and cross.severity == "warning"
+    # TVGS (Gói 07) now runs to 14/12/2026, past both open supply packages (12–13/11), so it
+    # covers them and nothing is raised.
+    assert await alerts(session, "CROSS_PKG_DEPENDENCY") == []
 
     expiring = await alerts(session, "GUARANTEE_EXPIRING")
     assert expiring and all(a.package_id == p5.id for a in expiring)
@@ -74,8 +75,7 @@ async def test_no_duplicate_fingerprints_and_second_run_changes_nothing(
 
 async def test_package_health_follows_alerts(session: AsyncSession, seeded: None) -> None:
     await run_alerts(session, NOW)
-    p3, p5 = await package(session, 3), await package(session, 5)
-    assert (p3.health, p3.health_reason) == ("grey", "Chưa có hợp đồng")
+    p5 = await package(session, 5)
     assert p5.health == "red"
     assert "nghiêm trọng" in (p5.health_reason or "")
 
@@ -97,9 +97,20 @@ async def test_fixing_the_data_closes_the_alert(session: AsyncSession, seeded: N
         assert rows and all(a.status == "resolved" and a.resolved_at for a in rows)
 
 
+async def end_tvgs_early(session: AsyncSession) -> None:
+    """Make the TVGS contract (Gói 07) end before the supply packages, which raises the alert."""
+    seven = await package(session, 7)
+    contract = (
+        await session.execute(select(Contract).where(Contract.package_id == seven.id))
+    ).scalar_one()
+    contract.planned_end_date = date(2026, 11, 1)
+    await session.commit()
+
+
 async def test_resolved_alert_reopens_when_condition_returns(
     session: AsyncSession, seeded: None
 ) -> None:
+    await end_tvgs_early(session)
     await run_alerts(session, NOW)
     (cross,) = await alerts(session, "CROSS_PKG_DEPENDENCY")
     seven = await package(session, 7)
@@ -137,6 +148,7 @@ async def test_acknowledged_stays_until_severity_rises(session: AsyncSession, se
 async def test_snooze_expires_and_critical_cannot_stay_snoozed(
     session: AsyncSession, seeded: None
 ) -> None:
+    await end_tvgs_early(session)
     await run_alerts(session, NOW)
     warn = (await alerts(session, "CROSS_PKG_DEPENDENCY"))[0]
     warn.status, warn.snoozed_until = "suppressed", NOW + timedelta(days=2)

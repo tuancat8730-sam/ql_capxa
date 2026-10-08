@@ -77,9 +77,8 @@ async def test_money_and_dates_are_real_excel_values_with_vietnamese_formats(
     signed = ws.cell(row=8, column=11)  # contract signed 14/09/2026
     assert signed.value.date() == date(2026, 9, 14) and signed.number_format == "DD/MM/YYYY"
     assert ws.cell(row=8, column=12).value == "Đã ký hợp đồng"
-    row3 = [ws.cell(row=7, column=i).value for i in range(5, 12)]
-    assert row3 == [None] * 7  # package 3: nothing has been recorded, nothing is invented
-    assert ws.cell(row=7, column=12).value == "Đang lựa chọn nhà thầu"
+    assert ws["D7"].value == 430_000_000  # package 3: consulting, value from the listing
+    assert ws.cell(row=7, column=12).value == "Đã ký hợp đồng"
     assert ws["C8"].value == "Hàng hóa" and ws["C10"].value == "Tư vấn"
 
 

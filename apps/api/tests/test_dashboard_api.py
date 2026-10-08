@@ -73,8 +73,8 @@ async def test_summary_project_card_and_package_strip(
     strip = data["packages"]
     assert [p["number"] for p in strip] == list(range(1, 9))
     pkg3 = strip[2]
-    assert (pkg3["health"], pkg3["health_reason"]) == ("grey", "Chưa có hợp đồng")
-    assert pkg3["contractor"] is None
+    assert pkg3["contractor"] == "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam"
+    assert pkg3["winning_price"] == 430_000_000
     pkg6 = strip[5]
     assert pkg6["contractor"] == "Sài Gòn Mới" and pkg6["winning_price"] == 1726920000
     assert {p["health"] for p in strip} <= {"green", "amber", "red", "grey"}

@@ -118,8 +118,7 @@ async def test_list_packages_returns_all_eight_in_order(
     data = (await c.get("/api/v1/packages")).json()
     assert data["total"] == 8 and [i["number"] for i in data["items"]] == list(range(1, 9))
     by = {i["number"]: i for i in data["items"]}
-    assert by[3]["health"] == "grey" and by[3]["health_reason"] == "Chưa có hợp đồng"
-    assert by[3]["contract_no"] is None
+    assert by[3]["contract_no"] == "Chưa rõ" and by[3]["contract_value"] == 430_000_000
     assert by[4]["contract_value"] == 51_505_400_000
     assert by[4]["needs_review"] is True and by[5]["needs_review"] is False
     assert by[6]["needs_review"] is False  # info-level override does not need review
@@ -129,7 +128,9 @@ async def test_list_packages_filters_and_pagination(
     session: AsyncSession, seeded: dict[int, Package], make_client_for
 ) -> None:
     c = await make_client_for(session, "viewer")
-    assert (await c.get("/api/v1/packages", params={"status": "bidding"})).json()["total"] == 1
+    assert (await c.get("/api/v1/packages", params={"status": "bidding"})).json()["total"] == 0
+    signed = await c.get("/api/v1/packages", params={"status": "contract_signed"})
+    assert signed.json()["total"] == 8
     assert (await c.get("/api/v1/packages", params={"q": "nguyên luân"})).json()["total"] == 1
     page2 = (await c.get("/api/v1/packages", params={"page": 2, "page_size": 3})).json()
     assert [i["number"] for i in page2["items"]] == [4, 5, 6]
@@ -176,15 +177,16 @@ async def test_package_overview_has_contracts_and_flags(
     session: AsyncSession, seeded: dict[int, Package], make_client_for
 ) -> None:
     c = await make_client_for(session, "viewer")
-    ov = (await c.get(f"/api/v1/packages/{seeded[2].id}/overview")).json()
+    ov = (await c.get(f"/api/v1/packages/{seeded[4].id}/overview")).json()
     assert ov["project"]["code"] == "8200685" and ov["needs_review"] is True
     codes = {i["code"] for i in ov["contracts"][0]["consistency"]}
-    assert {"DURATION_NE_KHLCNT", "INVESTOR_ACCOUNT_NE_TREASURY"} <= codes
+    assert codes == {"END_DATE_MISMATCH"}
     ov4 = (await c.get(f"/api/v1/packages/{seeded[4].id}/overview")).json()
     assert [p["role"] for p in ov4["contracts"][0]["parties"]] == ["lead", "member"]
     assert ov4["contracts"][0]["parties"][0]["organization_name"] == "Nguyên Luân"
     ov3 = (await c.get(f"/api/v1/packages/{seeded[3].id}/overview")).json()
-    assert ov3["contracts"] == [] and ov3["needs_review"] is False
+    assert len(ov3["contracts"]) == 1 and ov3["needs_review"] is False
+    assert ov3["contracts"][0]["parties"][0]["role"] == "sole"
 
 
 # --- contracts -----------------------------------------------------------------------------
@@ -200,9 +202,9 @@ async def test_create_contract_computes_end_date_and_runs_checks(
             "contract_no": "100",
             "signed_date": "2026-10-01",
             "duration_days": 30,
-            "value": 1_000_000,
+            "value": 430_000_000,
             "advance_pct": 30,
-            "advance_amount": 300_001,
+            "advance_amount": 129_000_001,
         },
     )
     assert resp.status_code == 201
@@ -211,8 +213,8 @@ async def test_create_contract_computes_end_date_and_runs_checks(
     assert body["status"] == "signed"
     assert {i["code"] for i in body["consistency"]} == {"ADVANCE_NE_PCT_X_VALUE"} or body[
         "consistency"
-    ] == []  # 1 dong tolerance: 300_001 vs 300_000 is allowed
-    bad = await c.patch(f"/api/v1/contracts/{body['id']}", json={"advance_amount": 305_000})
+    ] == []  # 1 dong tolerance: 129_000_001 vs 129_000_000 is allowed
+    bad = await c.patch(f"/api/v1/contracts/{body['id']}", json={"advance_amount": 135_000_000})
     assert "ADVANCE_NE_PCT_X_VALUE" in {i["code"] for i in bad.json()["consistency"]}
     assert bad.json()["needs_review"] is True
 

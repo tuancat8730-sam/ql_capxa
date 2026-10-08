@@ -33,6 +33,10 @@ CONTRACTORS = {
     "P&N": "contractor",
     "BSN": "contractor",
     "Sài Gòn Mới": "consultant",
+    "Công ty Cổ phần Tư vấn Quang Trung": "consultant",
+    "Công ty TNHH Hưng Dũng Lâm Đồng": "consultant",
+    "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam": "consultant",
+    "Công ty TNHH Kiểm toán Tư vấn Rồng Việt": "auditor",
 }
 
 PROJECT: dict[str, Any] = {
@@ -80,66 +84,83 @@ class PackageSeed:
 
 _SIGNED = {"status": "contract_signed", "current_stage": "S3_EXECUTION"}
 
-PACKAGES: tuple[PackageSeed, ...] = (
-    PackageSeed(
-        1,
-        D(237_382_337),
-        "goods",
-        {**_SIGNED, "winning_price": D(237_382_337), "winning_org_text": "An Lập Thịnh"},
-        ContractSeed(
-            "53",
-            {
-                "signed_date": date(2026, 7, 20),
-                "duration_days": 60,
-                "planned_end_date": date(2026, 9, 18),
-                "value": D(237_382_337),
-                "data_quality_note": "Văn bản ghi kết thúc 18/9; tính theo quy tắc là 17/9.",
-            },
-        ),
-    ),
-    PackageSeed(
-        2,
-        D(270_141_231),
-        "goods",
+
+def _consulting(
+    number: int,
+    org: str,
+    value: int,
+    start: date,
+    end: date,
+    days: int,
+    *,
+    contract_no: str,
+    role: str | None = None,
+    note: str | None = None,
+) -> PackageSeed:
+    """A consulting package as listed in "Sửa thông tin trên web": firm, value, start–end, days.
+
+    The end date is the one in that list (start + days, not start + days - 1), so it overrides
+    the computed one.
+    """
+    price = D(value)
+    return PackageSeed(
+        number,
+        price,
+        "consulting",
         {
             **_SIGNED,
-            "approved_duration_days": 60,
-            "winning_org_text": "Trường Thịnh NT",
-            "notes": "Giá trúng thầu theo HĐ 54 (chưa có giá trị hợp đồng).",
+            "winning_price": price,
+            "winning_org_text": org,
+            "approved_duration_days": days,
+            "consulting_role": role,
         },
         ContractSeed(
-            "54",
+            contract_no,
             {
-                "duration_days": 90,
-                "planned_end_date": date(2026, 9, 18),
-                "contract_type": "lump_sum",
-                "price_adjustment": True,
-                "investor_account": "9552.2.8171939",
-                "penalty_rate_pct": D(10),
-                "penalty_unit": "week",
-                "penalty_cap_pct": D(20),
-                "data_quality_note": (
-                    "Điều khoản sai khác: thiết kế thi công, điều chỉnh giá so với trọn gói, "
-                    "90 so với 60 ngày, tài khoản khác 8200685, phạt 10%/tuần tối đa 20%."
-                ),
+                "effective_date": start,
+                "duration_days": days,
+                "planned_end_date": end,
+                "end_date_override": True,
+                "value": price,
+                "data_quality_note": note,
             },
+            (PartySeed(org, "sole"),),
         ),
+    )
+
+
+_LIST_NOTE = "Theo danh sách nhà thầu, giá trị và thời gian thực hiện các gói thầu (bản sửa)."
+
+PACKAGES: tuple[PackageSeed, ...] = (
+    _consulting(
+        1,
+        "Công ty Cổ phần Tư vấn Quang Trung",
+        556_000_000,
+        date(2026, 6, 15),
+        date(2026, 7, 30),
+        45,
+        contract_no="53",
+        note=_LIST_NOTE,
     ),
-    PackageSeed(
+    _consulting(
+        2,
+        "Công ty TNHH Hưng Dũng Lâm Đồng",
+        70_000_000,
+        date(2026, 6, 15),
+        date(2026, 7, 15),
+        30,
+        contract_no="54",
+        note=_LIST_NOTE,
+    ),
+    _consulting(
         3,
-        D(117_472_203_146),
-        "goods",
-        {
-            "status": "bidding",
-            "current_stage": "S2_SELECTION",
-            "etbmt_no": "IB2600424701",
-            "health": "grey",
-            "health_reason": "Chưa có hợp đồng",
-            "notes": (
-                "E-TBMT IB2600424701; Viettel E-HSDT 101.886.000.000; "
-                "BĐDT 3.524.166.000; chưa có hợp đồng."
-            ),
-        },
+        "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam",
+        430_000_000,
+        date(2026, 6, 15),
+        date(2026, 7, 15),
+        30,
+        contract_no="Chưa rõ",
+        note=_LIST_NOTE + " Giá trị đã bao gồm VAT 10%.",
     ),
     PackageSeed(
         4,
@@ -232,27 +253,27 @@ PACKAGES: tuple[PackageSeed, ...] = (
             (PartySeed("Sài Gòn Mới", "sole"),),
         ),
     ),
-    PackageSeed(
+    _consulting(
         7,
-        D(509_634_139),
-        "consulting",
-        {**_SIGNED, "consulting_role": "tvgs"},
-        ContractSeed(
-            "73",
-            {
-                # SPEC 14.6 (9): the supervision contract ends about 13/12/2026, ahead of the
-                # supply packages. The exact date is still to be confirmed (OPEN_QUESTIONS).
-                "planned_end_date": date(2026, 12, 13),
-                "data_quality_note": "Ngày kết thúc ước tính ~13/12/2026 (SPEC 14.6).",
-            },
-        ),
+        "Sài Gòn Mới",
+        509_000_000,
+        date(2026, 9, 15),
+        date(2026, 12, 14),
+        90,
+        contract_no="73",
+        role="tvgs",
+        note=_LIST_NOTE,
     ),
-    PackageSeed(
+    _consulting(
         8,
-        D(720_713_320),
-        "consulting",
-        {**_SIGNED, "consulting_role": "other"},
-        ContractSeed("74", {}),
+        "Công ty TNHH Kiểm toán Tư vấn Rồng Việt",
+        710_000_000,
+        date(2026, 9, 15),
+        date(2026, 12, 14),
+        90,
+        contract_no="74",
+        role="other",
+        note=_LIST_NOTE + " Giá trị: bảy trăm mười triệu đồng chẵn.",
     ),
 )
 

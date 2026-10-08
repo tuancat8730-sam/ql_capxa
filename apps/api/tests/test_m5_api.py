@@ -75,9 +75,9 @@ async def test_seed_uses_only_facts_from_the_contracts(
         "S1_START",
     )  # 20% x 100 / 100, S1 unfinished
 
-    p3 = await stages(c, seeded[3])  # still bidding, no contract
-    assert stage(p3, "S2_SELECTION")["status"] == "in_progress"
-    assert (p3["package_progress"], stage(p3, "S3_EXECUTION")["planned_end"]) == (0, None)
+    p3 = await stages(c, seeded[3])  # consulting contract 15/06 – 15/07/2026
+    assert stage(p3, "S2_SELECTION")["status"] == "done"
+    assert stage(p3, "S3_EXECUTION")["planned_end"] == "2026-07-15"
 
 
 async def test_package_progress_is_stored_on_the_package(
@@ -155,7 +155,7 @@ async def test_gantt_drag_changes_the_dates_and_the_timeline_follows(
     pkg = next(p for p in tl["packages"] if p["number"] == 4)
     bar = next(s for s in pkg["stages"] if s["stage_code"] == "S3_EXECUTION")
     assert (bar["planned_start"], bar["planned_end"]) == ("2026-09-20", "2026-12-01")
-    assert tl["range_end"] == "2027-01-22" and tl["range_start"] == "2026-07-20"
+    assert tl["range_end"] == "2027-01-22" and tl["range_start"] == "2026-06-15"
 
 
 @pytest.mark.parametrize(
@@ -546,7 +546,7 @@ async def test_timeline_covers_all_packages_with_contract_bars(
     )
     assert all(len(p["stages"]) == 5 for p in tl["packages"])
     by = {p["number"]: p for p in tl["packages"]}
-    assert by[3]["contract"] is None
+    assert by[3]["contract"]["start"] == "2026-06-15" and by[3]["contract"]["end"] == "2026-07-15"
     assert (
         by[6]["contract"]["end"] == "2027-01-22" and by[6]["contract"]["end_date_override"] is True
     )
@@ -557,7 +557,7 @@ async def test_timeline_covers_all_packages_with_contract_bars(
         "end_date_override": False,
         "extended_end_date": None,
     }
-    assert tl["range_start"] == "2026-07-20" and tl["range_end"] == "2027-01-22"
+    assert tl["range_start"] == "2026-06-15" and tl["range_end"] == "2027-01-22"
 
 
 @pytest.mark.parametrize("role", ALL_ROLES)
