@@ -75,9 +75,9 @@ async def test_seed_uses_only_facts_from_the_contracts(
         "S1_START",
     )  # 20% x 100 / 100, S1 unfinished
 
-    p3 = await stages(c, seeded[3])  # consulting contract 15/06 – 15/07/2026
+    p3 = await stages(c, seeded[3])  # consulting contract HĐ 41, 15/06 – 14/07/2026
     assert stage(p3, "S2_SELECTION")["status"] == "done"
-    assert stage(p3, "S3_EXECUTION")["planned_end"] == "2026-07-15"
+    assert stage(p3, "S3_EXECUTION")["planned_end"] == "2026-07-14"
 
 
 async def test_package_progress_is_stored_on_the_package(
@@ -546,7 +546,7 @@ async def test_timeline_covers_all_packages_with_contract_bars(
     )
     assert all(len(p["stages"]) == 5 for p in tl["packages"])
     by = {p["number"]: p for p in tl["packages"]}
-    assert by[3]["contract"]["start"] == "2026-06-15" and by[3]["contract"]["end"] == "2026-07-15"
+    assert by[3]["contract"]["start"] == "2026-06-15" and by[3]["contract"]["end"] == "2026-07-14"
     assert (
         by[6]["contract"]["end"] == "2027-01-22" and by[6]["contract"]["end_date_override"] is True
     )

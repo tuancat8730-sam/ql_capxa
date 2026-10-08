@@ -29,13 +29,15 @@ class RiskSeed:
 
 RISKS: tuple[RiskSeed, ...] = (
     RiskSeed(
-        "Gói 03 chậm ký hợp đồng – nút thắt cung cấp thiết bị",
-        "Gói 03 chưa có hợp đồng; thiết bị của gói là nút thắt cho các gói nghiệm thu sau.",
-        "schedule",
+        "Gói 03 chưa rõ nghiệm thu, thanh lý, thanh toán; chứng thư thẩm định giá hết hiệu lực",
+        "Chứng thư thẩm định giá (194.717.303.146 đ, 20/6/2026) hết hiệu lực khoảng 20/9/2026 "
+        "trong khi các gói thiết bị còn đang thực hiện; QĐ 154 ghi nhầm tên dự án cần đính chính.",
+        "contract",
         4,
         5,
-        "Theo dõi tiến độ lựa chọn nhà thầu hằng tuần; chuẩn bị phương án giao hàng theo đợt.",
-        "de_cuong",
+        "Xác nhận nghiệm thu, thanh lý và thanh toán HĐ 41; đề nghị đính chính QĐ 154; "
+        "kiểm tra chứng thư có còn được dùng làm căn cứ không.",
+        "analysis",
         3,
     ),
     RiskSeed(

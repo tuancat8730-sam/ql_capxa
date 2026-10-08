@@ -24,6 +24,8 @@ from app.models import (
 
 D = Decimal
 
+BTA = "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam"
+
 INVESTOR = "Sở Khoa học và Công nghệ tỉnh Lâm Đồng"
 CONTRACTORS = {
     "An Lập Thịnh": "contractor",
@@ -35,7 +37,7 @@ CONTRACTORS = {
     "Sài Gòn Mới": "consultant",
     "Công ty Cổ phần Tư vấn Quang Trung": "consultant",
     "Công ty TNHH Hưng Dũng Lâm Đồng": "consultant",
-    "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam": "consultant",
+    BTA: "consultant",
     "Công ty TNHH Kiểm toán Tư vấn Rồng Việt": "auditor",
 }
 
@@ -152,15 +154,43 @@ PACKAGES: tuple[PackageSeed, ...] = (
         contract_no="54",
         note=_LIST_NOTE,
     ),
-    _consulting(
+    PackageSeed(
         3,
-        "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam",
-        430_000_000,
-        date(2026, 6, 15),
-        date(2026, 7, 15),
-        30,
-        contract_no="Chưa rõ",
-        note=_LIST_NOTE + " Giá trị đã bao gồm VAT 10%.",
+        D(430_000_000),
+        "consulting",
+        {
+            **_SIGNED,
+            "winning_price": D(430_000_000),
+            "winning_org_text": BTA,
+            "approved_duration_days": 30,
+            "scope_summary": "Tư vấn thẩm định giá (nhiệm vụ chuẩn bị đầu tư).",
+            "kh_lcnt_decision": "KHLCNT PL2600169648; QĐ 151/QĐ-SKHCN ngày 13/6/2026",
+            "approval_decision": "QĐ 154/QĐ-SKHCN ngày 15/6/2026 (phê duyệt KQLCNT)",
+            "notes": (
+                "Giá trị đã bao gồm VAT 10%. Chưa rõ nghiệm thu, thanh lý, thanh toán. "
+                "Chứng thư thẩm định giá 194.717.303.146 đ (20/6/2026) hiệu lực đến khoảng "
+                "20/9/2026 [OCR]. QĐ 154 ghi nhầm tên dự án, cần đính chính."
+            ),
+        },
+        ContractSeed(
+            "41/2026/SKH&CNLĐ-BTA",
+            {
+                "signed_date": date(2026, 6, 15),
+                "duration_days": 30,
+                "planned_end_date": date(2026, 7, 14),
+                "contract_type": "lump_sum",
+                "value": D(430_000_000),
+                "payment_terms_text": (
+                    "Thanh toán một lần 430.000.000 đ sau nghiệm thu, thanh lý và khi dự án "
+                    "được phê duyệt; không tạm ứng. Hóa đơn số 87 (2C26TBT) ngày 30/6/2026."
+                ),
+                "data_quality_note": (
+                    "Văn bản ghi thời gian thực hiện ba cách: từ ngày hiệu lực, từ ngày ký, "
+                    "30 ngày làm việc từ khi đủ hồ sơ; tính theo ngày ký."
+                ),
+            },
+            (PartySeed(BTA, "sole"),),
+        ),
     ),
     PackageSeed(
         4,

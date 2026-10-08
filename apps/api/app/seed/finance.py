@@ -33,6 +33,7 @@ class PaymentSeed:
     seq: int
     amount: Decimal
     notes: str | None = field(default=None)
+    invoice_no: str | None = field(default=None)
 
 
 GUARANTEES: tuple[GuaranteeSeed, ...] = (
@@ -86,6 +87,14 @@ PAYMENTS: tuple[PaymentSeed, ...] = (
     PaymentSeed("80", "payment", 2, D(172_692_000)),
     PaymentSeed("71", "advance", 0, D(15_451_620_000)),
     PaymentSeed("71", "payment", 1, D(20_602_160_000), "Đợt còn lại theo hợp đồng."),
+    PaymentSeed(
+        "41/2026/SKH&CNLĐ-BTA",
+        "payment",
+        1,
+        D(430_000_000),
+        "Một đợt, sau nghiệm thu, thanh lý và khi dự án được phê duyệt; chưa rõ đã thanh toán.",
+        "87 (2C26TBT) ngày 30/6/2026",
+    ),
 )
 
 
@@ -150,6 +159,7 @@ async def seed_finance(session: AsyncSession) -> None:
                 amount=p.amount,
                 status="planned",
                 notes=p.notes,
+                invoice_no=p.invoice_no,
             )
         )
     await session.commit()

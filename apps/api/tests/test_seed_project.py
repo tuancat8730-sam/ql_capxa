@@ -72,7 +72,7 @@ LISTED = {  # "Sửa thông tin trên web": firm, value, start, end, days
         "Công ty TNHH Thẩm định giá và Đo đạc Địa chính BTA Việt Nam",
         430_000_000,
         (2026, 6, 15),
-        (2026, 7, 15),
+        (2026, 7, 14),
         30,
     ),
     7: ("Sài Gòn Mới", 509_000_000, (2026, 9, 15), (2026, 12, 14), 90),
@@ -90,8 +90,11 @@ async def test_listed_consulting_packages_carry_firm_value_and_period(
     assert package.status == "contract_signed"
     contract = await contract_of(session, package)
     assert contract is not None and contract.value == D(value)
-    assert contract.effective_date == date(*start) and contract.planned_end_date == date(*end)
-    assert contract.duration_days == days and contract.end_date_override is True
+    if number == 3:  # HĐ 41/2026: signed 15/06, 30 days, so the rule gives 14/07 itself
+        assert contract.contract_no == "41/2026/SKH&CNLĐ-BTA" and not contract.end_date_override
+    assert (contract.effective_date or contract.signed_date) == date(*start)
+    assert contract.planned_end_date == date(*end)
+    assert contract.duration_days == days and contract.end_date_override is (number != 3)
     party = (
         await session.execute(
             select(Organization.name)
@@ -112,7 +115,7 @@ async def test_package_04_end_date_text_discrepancy_is_flagged(
     assert await flags(session, 4, seeded) == {"END_DATE_MISMATCH": "warning"}
 
 
-@pytest.mark.parametrize("number", sorted(LISTED))
+@pytest.mark.parametrize("number", [1, 2, 7, 8])
 async def test_listed_end_dates_are_kept_and_only_noted(
     number: int, session: AsyncSession, seeded: dict[int, Package]
 ) -> None:
@@ -168,3 +171,21 @@ async def test_seed_is_idempotent(session: AsyncSession, seeded: dict[int, Packa
         assert count == expected
     orgs = (await session.execute(select(func.count()).select_from(Organization))).scalar_one()
     assert orgs >= 8
+
+
+async def test_package_03_payment_and_decisions(
+    session: AsyncSession, seeded: dict[int, Package]
+) -> None:
+    from app.models import Payment
+    from app.seed.finance import seed_finance
+
+    await seed_finance(session)
+    p3 = seeded[3]
+    assert "PL2600169648" in (p3.kh_lcnt_decision or "") and "154" in (p3.approval_decision or "")
+    contract = await contract_of(session, p3)
+    assert contract is not None and contract.contract_type == "lump_sum"
+    assert await flags(session, 3, seeded) == {}
+    pay = (
+        await session.execute(select(Payment).where(Payment.contract_id == contract.id))
+    ).scalar_one()
+    assert pay.amount == D(430_000_000) and pay.invoice_no == "87 (2C26TBT) ngày 30/6/2026"

@@ -118,7 +118,7 @@ async def test_list_packages_returns_all_eight_in_order(
     data = (await c.get("/api/v1/packages")).json()
     assert data["total"] == 8 and [i["number"] for i in data["items"]] == list(range(1, 9))
     by = {i["number"]: i for i in data["items"]}
-    assert by[3]["contract_no"] == "Chưa rõ" and by[3]["contract_value"] == 430_000_000
+    assert by[3]["contract_no"] == "41/2026/SKH&CNLĐ-BTA" and by[3]["contract_value"] == 430_000_000
     assert by[4]["contract_value"] == 51_505_400_000
     assert by[4]["needs_review"] is True and by[5]["needs_review"] is False
     assert by[6]["needs_review"] is False  # info-level override does not need review

@@ -230,7 +230,7 @@ async def test_list_filters_and_pagination(
         9,
         12,
     }
-    assert (await c.get(api, params={"category": "contract"})).json()["total"] == 4
+    assert (await c.get(api, params={"category": "contract"})).json()["total"] == 5
     assert (await c.get(api, params={"probability": 3, "impact": 4})).json()["total"] == 2
     assert (await c.get(api, params={"q": "tvgs"})).json()["total"] == 1
     assert (await c.get(api, params={"q": "R-002"})).json()["total"] == 1

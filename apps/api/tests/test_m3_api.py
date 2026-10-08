@@ -246,7 +246,7 @@ async def test_seeded_payments_for_package_06_and_04(
     assert sorted(p["amount"] for p in p4) == [15_451_620_000, 20_602_160_000]
     assert (await c.get(f"/api/v1/contracts/{await cid(session, seeded, 5)}/payments")).json() == []
     allp = (await c.get("/api/v1/payments")).json()
-    assert allp["total"] == 5 and allp["items"][0]["package_number"] == 4
+    assert allp["total"] == 6 and allp["items"][0]["package_number"] == 3
     assert (await c.get("/api/v1/payments", params={"payment_type": "advance"})).json()[
         "total"
     ] == 2
