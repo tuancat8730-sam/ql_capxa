@@ -1,5 +1,5 @@
 export const vi = {
-  app: { name: 'QLDA Cấp xã' },
+  app: { name: 'Quản lý - SGM' },
   nav: {
     dashboard: 'Tổng quan',
     packages: 'Gói thầu',

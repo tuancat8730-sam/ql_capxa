@@ -95,8 +95,9 @@ export function AppShell() {
     <div className="min-h-dvh md:pl-16 lg:pl-60">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-16 flex-col border-r border-border bg-background md:flex lg:w-60">
         <div className="p-4 text-lg font-bold lg:text-xl">
-          <span className="lg:hidden">Q</span>
+          <span className="lg:hidden">SGM</span>
           <span className="hidden lg:inline">{t('app.name')}</span>
+          <span className="ml-1 hidden text-xs font-normal text-muted-foreground lg:inline">v{__APP_VERSION__}</span>
         </div>
         <nav aria-label={t('app.name')} className="flex-1 overflow-y-auto px-2">
           <ul className="space-y-1">

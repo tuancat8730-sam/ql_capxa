@@ -49,6 +49,7 @@ export function LoginPage() {
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center px-4 py-8">
       <h1 className="mb-1 text-xl font-semibold md:text-2xl">{t('app.name')}</h1>
+      <p className="mb-1 text-xs text-muted-foreground">v{__APP_VERSION__}</p>
       <h2 className="mb-6 text-muted-foreground">{t('auth.loginTitle')}</h2>
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         <div>

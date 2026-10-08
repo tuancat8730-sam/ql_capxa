@@ -1,10 +1,12 @@
 import path from 'node:path'
+import pkg from './package.json' with { type: 'json' }
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version.replace(/\.0$/, '')) },
   plugins: [
     react(),
     tailwindcss(),
@@ -13,8 +15,8 @@ export default defineConfig({
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
-        name: 'QLDA Cấp xã',
-        short_name: 'QLDA Cấp xã',
+        name: 'Quản lý - SGM',
+        short_name: 'Quản lý SGM',
         description: 'Quản lý dự án thiết bị cấp xã và Đề án 06 tỉnh Lâm Đồng',
         lang: 'vi',
         start_url: '/',
