@@ -6,6 +6,7 @@ import os
 from app.core.db import get_engine, get_sessionmaker
 from app.seed.checklists import seed_checklists
 from app.seed.finance import seed_finance
+from app.seed.package_logs import seed_package_logs
 from app.seed.progress import seed_progress
 from app.seed.project import seed_project
 from app.seed.risks import seed_risks
@@ -27,6 +28,7 @@ async def main() -> None:
         await seed_finance(session)
         await seed_checklists(session)
         await seed_progress(session)
+        await seed_package_logs(session)
         await seed_risks(session)
         await seed_sgd_hcm(session)
     print("Seeded both projects: packages, contracts, finance, stages, risks and the SGD-HCM plan")
