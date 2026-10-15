@@ -144,6 +144,12 @@ export const vi = {
       checks: 'Kiểm tra dữ liệu hợp đồng',
     },
     laterMilestone: 'Mục này sẽ có ở các bản cập nhật sau.',
+    log: {
+      title: 'Nhật ký của gói thầu',
+      add: 'Thêm nhật ký',
+      more: 'Xem thêm',
+      photos: '{{count}} ảnh đính kèm',
+    },
     noContract: 'Chưa có hợp đồng',
     noIssues: 'Không phát hiện sai khác',
     expected: 'Kỳ vọng',

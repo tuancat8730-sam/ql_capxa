@@ -6,6 +6,7 @@ import { HealthBadge, StatusBadge } from '@/components/ui/StatusBadge'
 import { api, ApiError } from '@/lib/api'
 import { formatDate, formatMoney, NO_DATA } from '@/lib/format'
 import { can } from '@/lib/permissions'
+import { PackageLogTab } from '@/features/progress/PackageLogTab'
 import { StagesTab } from '@/features/progress/StagesTab'
 import { AccessSection } from './AccessSection'
 import { RisksIssuesTab } from './RisksIssuesTab'
@@ -18,7 +19,7 @@ import { useRole } from '@/features/projects/ProjectContext'
 
 const TABS = ['overview', 'contracts', 'progress', 'plan', 'documents', 'risks', 'payments', 'log'] as const
 type Tab = (typeof TABS)[number]
-const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments', 'documents', 'progress', 'plan', 'risks']
+const IMPLEMENTED: Tab[] = ['overview', 'contracts', 'payments', 'documents', 'progress', 'plan', 'risks', 'log']
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -282,6 +283,7 @@ export function PackageDetailPage() {
         {tab === 'progress' && <StagesTab packageId={pkg.id} />}
         {tab === 'plan' && <PlanTab packageId={pkg.id} />}
         {tab === 'risks' && <RisksIssuesTab packageId={pkg.id} />}
+        {tab === 'log' && <PackageLogTab packageId={pkg.id} />}
         {tab === 'documents' && (
           <div className="space-y-6">
             <ChecklistTab packageId={pkg.id} />

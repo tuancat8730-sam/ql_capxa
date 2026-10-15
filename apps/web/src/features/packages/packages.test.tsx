@@ -180,7 +180,7 @@ describe('packages UI', () => {
     expect(screen.getAllByText('Chưa có dữ liệu').length).toBeGreaterThan(0) // contract type etc.
   })
 
-  it('detail page falls back to overview for unknown tabs and shows later-milestone tabs', async () => {
+  it('detail page falls back to overview for unknown tabs and lists the diary on the log tab', async () => {
     fetchMock.mockImplementation((url: string) =>
       Promise.resolve(
         route(url) ??
@@ -191,7 +191,8 @@ describe('packages UI', () => {
     expect(await screen.findByRole('tab', { name: 'Tổng quan' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText('Lý do: Chưa có hợp đồng')).toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('tab', { name: 'Nhật ký' }))
-    expect(await screen.findByText(/sẽ có ở các bản cập nhật sau/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Nhật ký của gói thầu/ })).toBeInTheDocument()
+    expect(screen.queryByText(/sẽ có ở các bản cập nhật sau/)).not.toBeInTheDocument()
   })
 
   it('detail page reports a missing package with a way back', async () => {

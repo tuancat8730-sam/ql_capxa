@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { useOnline } from '@/components/layout/OfflineBanner'
 import { PhotoCapture } from '@/components/ui/PhotoCapture'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
@@ -111,7 +112,8 @@ export function DailyLogPage() {
     }
   }, [sentCount, queryClient])
 
-  const [packageId, setPackageId] = useState('')
+  const [params] = useSearchParams()
+  const [packageId, setPackageId] = useState(params.get('package') ?? '')
   const [form, setForm] = useState<DailyLogForm>(emptyForm('', today()))
   const [photos, setPhotos] = useState<PendingPhoto[]>([])
   const [draftSaved, setDraftSaved] = useState(false)
