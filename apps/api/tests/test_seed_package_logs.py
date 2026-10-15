@@ -1,4 +1,4 @@
-"""The Gói 05 pre-delivery inspection report lands in the package's site diary, once."""
+"""The Gói 05 handover record lands in the package's site diary, once."""
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +9,7 @@ from app.seed.project import seed_project
 from app.seed.users import ensure_admin
 
 
-async def test_package_05_inspection_is_logged_once(session: AsyncSession) -> None:
+async def test_package_05_handover_is_logged_once(session: AsyncSession) -> None:
     await ensure_admin(session, "admin@qlda.local", "S3cure-pass-for-tests!")
     await seed_project(session)
     await seed_package_logs(session)
@@ -23,7 +23,8 @@ async def test_package_05_inspection_is_logged_once(session: AsyncSession) -> No
     )
     assert len(logs) == 1
     log = logs[0]
-    assert "ĐẠT" in (log.summary or "") and "PHÙ HỢP" in (log.summary or "")
-    assert "IP57" in (log.issues or "") and "BM-04" in (log.next_steps or "")
+    assert log.log_date.isoformat() == "2026-10-13"
+    assert "1310/BBBG-G05/TVGS-SGM" in (log.summary or "")
+    assert "BKCA2020101" in (log.issues or "") and "ký biên bản" in (log.next_steps or "")
     total = (await session.execute(select(func.count()).select_from(ProgressLog))).scalar_one()
     assert total == 1

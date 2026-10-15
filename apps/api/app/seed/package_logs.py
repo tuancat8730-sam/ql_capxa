@@ -26,41 +26,45 @@ class LogSeed:
 
 LOGS: tuple[LogSeed, ...] = (
     LogSeed(
-        "seed:g05-bbdk-v2",
+        "seed:g05-bbbg-1310",
         5,
-        date(2026, 10, 15),
+        date(2026, 10, 13),
         (
-            "Biên bản kiểm tra điều kiện triển khai và hồ sơ kỹ thuật hàng hóa trước khi cung "
-            "cấp, lắp đặt (mẫu BM-03, số …/BBĐK-G05/TVGS-SGM, bản v2 của TVGS Sài Gòn Mới; "
-            "chưa ghi ngày và giờ lập). Địa điểm: kho tập kết tại Phan Thiết. Thành phần: "
-            "TVQLDA (Cát Nghiêm Hiếu Tuấn), TVGS (Võ Minh Thanh), liên danh P&N (Phạm Trọng "
-            "Khải, đứng đầu) và BSN (Phạm Văn Duy).\n"
-            "Kết luận: điều kiện triển khai ĐẠT; hồ sơ kỹ thuật hàng hóa PHÙ HỢP.\n"
-            "A. Điều kiện triển khai, 9/9 mục đạt: kế hoạch và tiến độ chi tiết theo đợt, khu "
-            "vực, 75 Công an xã/phường/đặc khu (60 ngày từ ngày hợp đồng có hiệu lực, đến hết "
-            "13/11/2026); nhân sự kỹ thuật và tổ lắp đặt; kho tập kết (mái che, PCCC, chống "
-            "ẩm); bảo hiểm hàng hóa; danh sách phân bổ (mỗi đơn vị 02 máy tính xách tay, 02 bản "
-            "quyền phần mềm, 01 bộ mỗi thiết bị còn lại); an toàn điện và bảo mật; bảo đảm "
-            "thực hiện 407.999.250 đ cùng bảo lãnh tạm ứng P&N 2.815.942.500 đ và BSN "
-            "1.264.050.000 đ; phương án bảo hành, bảo trì; kế hoạch đào tạo.\n"
-            "B. Hồ sơ kỹ thuật, 9/9 hạng mục phù hợp: máy tính xách tay Asus P1503CVA (150 bộ, "
-            "bảo hành 24 tháng); máy in Brother HL-B2100D (75); đầu thu vân tay BKCONTECH "
-            "BKCA2020101 (75); đầu thu mống mắt CMITech BTM-20 (75); đầu đọc thẻ uTrust 4701F "
-            "(75); máy ảnh Canon EOS R50 (75); phần mềm VAGOGE RAR-EP PREMIUM (150 license, 03 "
-            "năm); phụ kiện (75 bộ); cài đặt, cấu hình, vận chuyển do P&N thực hiện."
+            "Biên bản bàn giao thiết bị số 1310/BBBG-G05/TVGS-SGM, lập 09:00 ngày 13/10/2026 "
+            "tại 192 Phạm Hùng, Phường Phú Thủy, Tỉnh Lâm Đồng, theo Hợp đồng 72/2026/HĐ/"
+            "SKHCNLĐ-LD P&N-BSN ngày 14/9/2026. Bên giao: liên danh P&N – BSN (ông Phạm "
+            "Trọng Khải, Giám đốc P&N); bên nhận: Sở KH&CN (ông Võ Thành Công, Giám đốc); TVQLDA "
+            "(ông Cát Nghiêm Hiếu Tuấn); TVGS (ông Võ Minh Thanh).\n"
+            "Thiết bị bàn giao: máy tính xách tay Asus P1503CVA 150 bộ (BSN); máy in Brother "
+            "HL-B2100D 75; thiết bị thu nhận mống mắt CMITech BMT-20 75; đầu đọc thẻ uTrust "
+            "4701F 75; máy ảnh Canon EOS R50 kèm ống kính RF-S18-45mm 75 (thân máy 75 số, ống "
+            "kính 75 số); phần mềm VAGOGE RAR-EP PREMIUM 150 bản quyền 03 năm; phụ kiện 75 bộ "
+            "gồm khung treo phông KTP, chân máy ảnh Benro T980, cáp Ugreen USB-A to USB-C, hub "
+            "Ugreen (không có serial). Các hạng mục còn lại do P&N giao.\n"
+            "Bảo hành: 24 tháng máy tính xách tay; 12 tháng máy in, thiết bị mống mắt, đầu đọc "
+            "thẻ, máy ảnh, phụ kiện; 03 năm phần mềm; xử lý trong 04 giờ (8h00–17h00) hoặc 10 "
+            "giờ (ngoài giờ), khoản 9.3 Điều 9."
         ),
         (
-            "Hai điểm khác giữa E-HSMT và hợp đồng; hàng hóa được kiểm tra theo hợp đồng "
-            "(thứ tự ưu tiên tài liệu tại Điều 2): (1) thiết bị thu vân tay: hợp đồng IP54, "
-            "E-HSMT tối thiểu IP57; (2) máy tính xách tay: hợp đồng Core i5 Processor 210H, "
-            "E-HSMT tối thiểu Core i5 1334U thế hệ 13. Nội dung và thời hạn bổ sung: không có. "
-            "Biên bản chưa có số, ngày và chữ ký."
+            "(1) Chưa bàn giao trong biên bản này: thiết bị thu nhận vân tay BKCONTECH "
+            "BKCA2020101 (75 bộ) và pin dự phòng của mục phụ kiện; sẽ bàn giao bổ sung bằng "
+            "biên bản riêng.\n"
+            "(2) Serial máy tính xách tay: TT 145–150 có số serial ở phụ lục CQ của hãng bị dấu "
+            "đỏ che một phần; TT 148 (TBNXCV16W00248G), 149 (W4NXCV06V972168), 150 "
+            "(W4NXCV06V981165) khác dải số với các máy còn lại; đối chiếu tem trên máy khi bàn "
+            "giao.\n"
+            "(3) Thiết bị mống mắt: CO-CQ lô CMIT20260923-1 ghi 100 số serial, Gói 05 giao 75; "
+            "nhà thầu xác định 75 số thực giao.\n"
+            "(4) Máy in: danh mục 75 serial do P&N lập ngày 12/10/2026; TT 1–59 trùng danh sách "
+            "kèm chứng nhận chất lượng của Brother Việt Nam ngày 09/10/2026.\n"
+            "(5) Mục III (tình trạng thiết bị khi bàn giao, 6 nội dung) và mục IV (ý kiến các "
+            "bên) chưa được đánh dấu hay ghi; số bản lập chưa ghi; tiêu đề phụ lục còn để trống "
+            "số biên bản."
         ),
         (
-            "Nhà thầu được nhập và tập kết hàng tại kho. Trước mỗi lô hàng gửi TVGS danh sách "
-            "serial (Excel), phiếu đóng gói, CO, CQ và thông báo lịch kiểm tra tại kho trước "
-            "tối thiểu 02 ngày làm việc để kiểm tra theo mẫu BM-04. Ký, ghi ngày và số biên "
-            "bản; tải bản ký lên hồ sơ gói."
+            "Hoàn thiện mục III và IV, ghi số bản và ký biên bản bàn giao; bàn giao bổ sung "
+            "thiết bị vân tay BKCA2020101 (75 bộ) và pin dự phòng bằng biên bản riêng; đối chiếu "
+            "serial TT 145–150 của máy tính xách tay với tem trên máy; tải bản ký lên hồ sơ gói."
         ),
     ),
 )
