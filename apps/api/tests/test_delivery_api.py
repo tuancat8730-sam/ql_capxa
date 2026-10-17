@@ -43,17 +43,6 @@ def freeze(monkeypatch: pytest.MonkeyPatch, day: str) -> None:
     monkeypatch.setattr("app.routers.delivery.today_local", lambda: date.fromisoformat(day))
 
 
-@pytest.fixture
-async def sgd(session: AsyncSession) -> Project:
-    """The project with its plan only: most tests start from nothing entered."""
-    return await seed_sgd_hcm(session, progress=False)
-
-
-@pytest.fixture
-async def sgd_loaded(session: AsyncSession) -> Project:
-    return await seed_sgd_hcm(session)
-
-
 async def member(
     storage,
     session: AsyncSession,

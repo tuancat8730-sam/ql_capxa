@@ -10,6 +10,7 @@ from app.routers import (
     audit,
     auth,
     checklists,
+    construction_logs,
     contracts,
     dashboard,
     delivery,
@@ -97,6 +98,7 @@ def create_app(storage: Storage | None = None, mailer: Mailer | None = None) -> 
     api.include_router(project.router)
     api.include_router(project.projects_router)
     api.include_router(delivery.router)
+    api.include_router(construction_logs.router)
     api.include_router(packages.router)
     api.include_router(contracts.router)
     api.include_router(finance.router)

@@ -47,6 +47,7 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 "alembic/versions/*" = ["E501"]
 "app/seed/sgd_hcm_plan.py" = ["E501"]  # task names copied verbatim from the plan
 "app/seed/sgd_hcm_data.py" = ["E501"]  # generated from the exported page data
+"app/seed/sgd_hcm_logs_data.py" = ["E501"]  # text copied verbatim from the Word logs
 
 [tool.mypy]
 python_version = "3.12"

@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   BarChart3,
+  BookOpen,
   CalendarClock,
   ClipboardList,
   FileText,
@@ -34,6 +35,7 @@ export const allNav: NavItem[] = [
   { to: '/packages', labelKey: 'nav.packages', icon: Package, module: 'packages', primary: true },
   { to: '/schedule', labelKey: 'nav.schedule', icon: BarChart3, module: 'schedule', primary: true },
   { to: '/weekly-reports', labelKey: 'nav.weeklyReports', icon: FileText, module: 'weekly_reports', primary: true },
+  { to: '/construction-log', labelKey: 'nav.constructionLog', icon: BookOpen, module: 'construction_log' },
   { to: '/daily-log', labelKey: 'nav.dailyLog', icon: PenLine, module: 'daily_log', primary: true },
   { to: '/alerts', labelKey: 'nav.alerts', icon: AlertTriangle, module: 'alerts', primary: true },
   { to: '/progress', labelKey: 'nav.progress', icon: BarChart3, module: 'progress' },

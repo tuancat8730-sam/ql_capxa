@@ -112,6 +112,7 @@ describe('delivery pages', () => {
         if (url === '/api/v1/delivery/tasks') return Promise.resolve(res(200, TASKS))
         if (url === '/api/v1/delivery/weeks') return Promise.resolve(res(200, WEEKS))
         if (url === '/api/v1/delivery/decisions') return Promise.resolve(res(200, [DECISION]))
+        if (url.endsWith('/log-history')) return Promise.resolve(res(200, []))
         if (url.startsWith('/api/v1/risks')) return Promise.resolve(res(200, { items: [RISK], total: 1, page: 1, page_size: 100 }))
       }
       return Promise.resolve(res(200, {}))

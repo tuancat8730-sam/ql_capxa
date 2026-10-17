@@ -32,6 +32,8 @@ const ChangeRequestsPage = lazy(() =>
 const DeliveryOverviewPage = lazy(() => import('./features/delivery/DeliveryOverviewPage').then((m) => ({ default: m.DeliveryOverviewPage })))
 const SchedulePage = lazy(() => import('./features/delivery/SchedulePage').then((m) => ({ default: m.SchedulePage })))
 const WeeklyReportsPage = lazy(() => import('./features/delivery/WeeklyReportsPage').then((m) => ({ default: m.WeeklyReportsPage })))
+const ConstructionLogPage = lazy(() => import('./features/delivery/ConstructionLogPage').then((m) => ({ default: m.ConstructionLogPage })))
+const ConstructionLogDetailPage = lazy(() => import('./features/delivery/ConstructionLogDetailPage').then((m) => ({ default: m.ConstructionLogDetailPage })))
 const DecisionsPage = lazy(() => import('./features/delivery/DecisionsPage').then((m) => ({ default: m.DecisionsPage })))
 const DeliveryRisksPage = lazy(() => import('./features/delivery/DeliveryRisksPage').then((m) => ({ default: m.DeliveryRisksPage })))
 const PackagesPage = lazy(() => import('./features/packages/PackagesPage').then((m) => ({ default: m.PackagesPage })))
@@ -52,7 +54,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests', '/outgoing-docs', '/admin/audit', '/admin/settings', '/admin/projects', '/schedule', '/weekly-reports', '/decisions'])
+const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests', '/outgoing-docs', '/admin/audit', '/admin/settings', '/admin/projects', '/schedule', '/weekly-reports', '/construction-log', '/decisions'])
 
 export default function App() {
   const { t } = useTranslation()
@@ -77,6 +79,8 @@ export default function App() {
           <Route path="/" element={<ByProjectType procurement={<DashboardPage />} software={<DeliveryOverviewPage />} />} />
           <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/weekly-reports" element={<WeeklyReportsPage />} />
+          <Route path="/construction-log" element={<ConstructionLogPage />} />
+          <Route path="/construction-log/:week" element={<ConstructionLogDetailPage />} />
           <Route path="/decisions" element={<DecisionsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/profile" element={<ProfilePage />} />

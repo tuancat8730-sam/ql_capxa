@@ -5,6 +5,7 @@ import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, ApiError } from '@/lib/api'
 import { dmy, StateBadge } from './meta'
 import { useRefreshDelivery } from './queries'
+import { TaskLogHistory } from './TaskLogHistory'
 import type { Task, TaskPatch, TaskStatus } from './types'
 
 const STATUSES: TaskStatus[] = ['not_started', 'in_progress', 'done', 'on_hold']
@@ -177,6 +178,7 @@ export function TaskSheet({ task, canWrite, onClose }: Props) {
           </div>
         )}
       </form>
+      {!milestone && <TaskLogHistory task={task} />}
     </BottomSheet>
   )
 }

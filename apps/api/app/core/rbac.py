@@ -38,6 +38,8 @@ MATRIX: dict[str, dict[str, str]] = {
     "wbs": _row("W", "W", "R", "W", "R", "W", "-", "R"),
     "weekly_report": _row("W", "W", "W", "W", "R", "R", "W", "R"),
     "decision": _row("W", "A", "W", "W", "R", "R", "R", "R"),
+    # the contractor's weekly construction log: written by whoever records the weekly report
+    "construction_log": _row("W", "W", "W", "W", "R", "R", "W", "R"),
 }
 
 

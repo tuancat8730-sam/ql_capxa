@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Project, WbsTask
 from app.seed.project import _org
+from app.seed.sgd_hcm_logs import seed_sgd_hcm_logs
 from app.seed.sgd_hcm_plan import PHASES
 from app.seed.sgd_hcm_progress import seed_sgd_hcm_progress
 
@@ -72,4 +73,5 @@ async def seed_sgd_hcm(session: AsyncSession, *, progress: bool = True) -> Proje
     await session.commit()
     if progress:
         await seed_sgd_hcm_progress(session)
+        await seed_sgd_hcm_logs(session)
     return project

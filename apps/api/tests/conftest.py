@@ -22,6 +22,7 @@ from app.main import create_app  # noqa: E402
 from app.models import Base, Project, ProjectMember, User  # noqa: E402
 from app.models.user import ROLES  # noqa: E402
 from app.seed.project import PROJECT  # noqa: E402
+from app.seed.sgd_hcm import seed_sgd_hcm  # noqa: E402
 from app.services.storage import MemoryStorage  # noqa: E402
 
 PASSWORD = "Str0ng-Passw0rd!"
@@ -149,3 +150,15 @@ def make_client_for(storage: MemoryStorage):
 
 
 ALL_ROLES = sorted(ROLES)
+
+
+@pytest.fixture
+async def sgd(session: AsyncSession) -> Project:
+    """The SGD-HCM project with its plan only: most tests start from nothing entered."""
+    return await seed_sgd_hcm(session, progress=False)
+
+
+@pytest.fixture
+async def sgd_loaded(session: AsyncSession) -> Project:
+    """The SGD-HCM project with the progress and construction logs exported on 17/10/2026."""
+    return await seed_sgd_hcm(session)

@@ -25,6 +25,7 @@ const MATRIX: Record<string, Record<string, string>> = {
   wbs: row('WWRWRW-R'),
   weekly_report: row('WWWWRRWR'),
   decision: row('WAWWRRRR'),
+  construction_log: row('WWWWRRWR'),
 }
 
 const RANK: Record<string, number> = { R: 1, W: 2, A: 3 }

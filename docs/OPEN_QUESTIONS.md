@@ -54,3 +54,6 @@ Ghi theo SPEC mục 0.3: chỗ mơ hồ → chọn phương án mặc định, g
 30. **Ai được vào SGD-HCM**: lúc đầu chỉ admin hệ thống; thêm người ở `/admin/projects`.
 31. **Nhật ký (audit) và đăng nhập** không thuộc dự án nào; xem được ở mọi dự án có quyền xem audit.
 32. **Số văn bản đi** hậu tố `QLDA-SGM` vẫn cố định cho mọi dự án; SGD-HCM chưa dùng mục này.
+33. **Nhật ký thi công tuần 02 (02/10 – 08/10/2026)** chưa có tệp; ứng dụng chỉ nạp tuần 01 (25/9 – 01/10) và tuần 03 (09/10 – 15/10). Cần nhà thầu gửi tệp tuần 02 (và các tuần sau) để nạp hoặc nhập tay.
+34. **Dòng "Xây dựng hệ thống theo yêu cầu chức năng, nghiệp vụ…"** trong nhật ký gộp nhiều đầu việc (III.3 đến III.5), nên `task_code` để trống thay vì đoán. Nếu muốn lịch sử theo từng đầu việc, nhà thầu cần ghi tách theo mô-đun hoặc người nhập chọn đầu việc khi sửa nhật ký.
+35. **Số giai đoạn kiểm thử:** tệp Word của nhà thầu đánh số "IV. Kiểm thử và kiểm soát chất lượng", còn kế hoạch gốc đánh số V (IV là chuẩn hóa dữ liệu). Ứng dụng lưu theo kế hoạch (V); cần nhà thầu thống nhất cách đánh số.

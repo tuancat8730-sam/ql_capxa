@@ -1,6 +1,12 @@
 from app.models.alert import Alert
 from app.models.audit import AuditLog
 from app.models.base import Base, IdMixin, SoftDeleteMixin, TimestampMixin
+from app.models.construction_log import (
+    ConstructionLog,
+    ConstructionLogCarryover,
+    ConstructionLogEntry,
+    ConstructionLogMemberWork,
+)
 from app.models.contract import Contract, ContractAmendment, ContractItem, ContractParty
 from app.models.delivery import DecisionItem, WbsTask, WeeklyReport
 from app.models.doc_number import OutgoingDocNumber
@@ -20,6 +26,10 @@ __all__ = [
     "ChangeRequest",
     "ChecklistItem",
     "ChecklistTemplate",
+    "ConstructionLog",
+    "ConstructionLogCarryover",
+    "ConstructionLogEntry",
+    "ConstructionLogMemberWork",
     "Contract",
     "ContractAmendment",
     "ContractItem",
