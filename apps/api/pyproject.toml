@@ -46,6 +46,7 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 "alembic/env.py" = ["E402"]
 "alembic/versions/*" = ["E501"]
 "app/seed/sgd_hcm_plan.py" = ["E501"]  # task names copied verbatim from the plan
+"app/seed/sgd_hcm_data.py" = ["E501"]  # generated from the exported page data
 
 [tool.mypy]
 python_version = "3.12"

@@ -7,9 +7,19 @@ import pytest
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Alert, Project, ProjectMember, User, WbsTask
+from app.models import (
+    Alert,
+    DecisionItem,
+    Project,
+    ProjectMember,
+    Risk,
+    User,
+    WbsTask,
+    WeeklyReport,
+)
 from app.seed.sgd_hcm import seed_sgd_hcm
 from app.seed.sgd_hcm_plan import PHASES
+from app.seed.sgd_hcm_progress import apply_progress
 from app.services.alert_engine import run_alerts
 from tests.test_multi_project import H, client_as, make_project, seat
 
@@ -35,6 +45,12 @@ def freeze(monkeypatch: pytest.MonkeyPatch, day: str) -> None:
 
 @pytest.fixture
 async def sgd(session: AsyncSession) -> Project:
+    """The project with its plan only: most tests start from nothing entered."""
+    return await seed_sgd_hcm(session, progress=False)
+
+
+@pytest.fixture
+async def sgd_loaded(session: AsyncSession) -> Project:
     return await seed_sgd_hcm(session)
 
 
@@ -68,8 +84,52 @@ async def test_the_seed_loads_the_baseline_plan(session: AsyncSession, sgd: Proj
     assert {r.phase_code for r in rows} == {p.code for p in PHASES}
     assert min(r.plan_start for r in rows) == date(2026, 9, 25)
     assert max(r.plan_end for r in rows) == date(2026, 12, 9)
-    assert not any(r.tracked for r in rows)
     assert sgd.project_type == "software_delivery"
+
+
+async def test_the_seed_loads_the_exported_progress(
+    session: AsyncSession, sgd_loaded: Project
+) -> None:
+    tracked = {
+        r.code: r
+        for r in (await session.execute(select(WbsTask).where(WbsTask.project_id == sgd_loaded.id)))
+        .scalars()
+        .all()
+        if r.tracked
+    }
+    assert len(tracked) == 14
+    assert tracked["I-1"].status == "done" and tracked["I-1"].pct == 100
+    assert tracked["III-6"].status == "in_progress"
+    assert tracked["M1"].status == "not_started" and "07/10" in (tracked["M1"].note or "")
+    reports = (
+        (
+            await session.execute(
+                select(WeeklyReport).where(WeeklyReport.project_id == sgd_loaded.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert sorted(r.report_no or "" for r in reports) == ["BC-01", "BC-02", "BC-03"]
+    risks = (
+        (await session.execute(select(Risk).where(Risk.project_id == sgd_loaded.id)))
+        .scalars()
+        .all()
+    )
+    assert len(risks) == 16 and all(r.score == r.probability * r.impact for r in risks)
+    last = next(r for r in reports if r.report_no == "BC-03")
+    assert len(last.risk_ids) == 5  # PM-02, 06, 13, 14, 16 resolved to the register's ids
+    assert {str(r.id) for r in risks} >= set(last.risk_ids)
+    pending = (
+        (
+            await session.execute(
+                select(DecisionItem).where(DecisionItem.project_id == sgd_loaded.id)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    assert len(pending) == 19 and all(d.status == "pending" for d in pending)
 
 
 async def test_seeding_twice_changes_nothing(session: AsyncSession, sgd: Project) -> None:
@@ -78,6 +138,44 @@ async def test_seeding_twice_changes_nothing(session: AsyncSession, sgd: Project
     seats = (await session.execute(select(func.count()).select_from(ProjectMember))).scalar_one()
     assert again.id == sgd.id and count == 44
     assert seats == 0  # nobody is seated: system administrators add people later
+
+
+async def test_a_seed_run_keeps_what_was_entered_in_the_app(
+    session: AsyncSession, sgd_loaded: Project
+) -> None:
+    decision = (
+        await session.execute(
+            select(DecisionItem).where(
+                DecisionItem.project_id == sgd_loaded.id, DecisionItem.no == 1
+            )
+        )
+    ).scalar_one()
+    decision.status, decision.decision = "decided", "Đã chốt"
+    await session.commit()
+    await seed_sgd_hcm(session)
+    await session.refresh(decision)
+    assert decision.status == "decided" and decision.decision == "Đã chốt"
+
+
+async def test_applying_the_export_again_keeps_settled_decisions(
+    session: AsyncSession, sgd_loaded: Project
+) -> None:
+    """The migration upserts: it refreshes the text but never reopens a settled decision."""
+    decision = (
+        await session.execute(
+            select(DecisionItem).where(
+                DecisionItem.project_id == sgd_loaded.id, DecisionItem.no == 2
+            )
+        )
+    ).scalar_one()
+    decision.status, decision.title = "decided", "đã sửa tay"
+    await session.commit()
+    await session.run_sync(lambda s: apply_progress(s.connection()))
+    await session.commit()
+    await session.refresh(decision)
+    assert decision.status == "decided" and decision.title != "đã sửa tay"
+    count = (await session.execute(select(func.count()).select_from(DecisionItem))).scalar_one()
+    assert count == 19
 
 
 # --- access -----------------------------------------------------------------------------------

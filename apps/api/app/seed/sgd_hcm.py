@@ -1,8 +1,9 @@
 """Seed the SGD-HCM project: the baseline schedule of "Theo dõi tiến độ SGD-HCM".
 
-Idempotent. Only the plan is seeded; progress, reports, risks and open decisions start empty and
-are entered in the application. Nobody is seated in the project: system administrators see it
-and add the others from the project page.
+Idempotent. The plan is always seeded. The progress, reports, risks and open decisions exported
+on 17/10/2026 (`sgd_hcm_data`) are loaded only into a project where none has been entered yet.
+Nobody is seated in the project: system administrators see it and add the others from the
+project page.
 """
 
 from sqlalchemy import select
@@ -11,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Project, WbsTask
 from app.seed.project import _org
 from app.seed.sgd_hcm_plan import PHASES
+from app.seed.sgd_hcm_progress import seed_sgd_hcm_progress
 
 INVESTOR = "Sở Giáo dục và Đào tạo TP. Hồ Chí Minh"
 
@@ -32,7 +34,7 @@ PROJECT = {
 }
 
 
-async def seed_sgd_hcm(session: AsyncSession) -> Project:
+async def seed_sgd_hcm(session: AsyncSession, *, progress: bool = True) -> Project:
     investor = await _org(session, INVESTOR, "investor")
     project = (
         await session.execute(select(Project).where(Project.code == PROJECT["code"]))
@@ -68,4 +70,6 @@ async def seed_sgd_hcm(session: AsyncSession) -> Project:
                 )
             )
     await session.commit()
+    if progress:
+        await seed_sgd_hcm_progress(session)
     return project
