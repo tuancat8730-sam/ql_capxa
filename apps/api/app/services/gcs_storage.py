@@ -98,6 +98,10 @@ class GcsStorage:
 
         return await asyncio.to_thread(_sign)
 
+    async def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
+        blob = self._bucket.blob(key)
+        await asyncio.to_thread(blob.upload_from_string, data, content_type=content_type)
+
     async def head(self, key: str) -> ObjectInfo | None:
         def _head() -> ObjectInfo | None:
             blob = self._bucket.get_blob(key)

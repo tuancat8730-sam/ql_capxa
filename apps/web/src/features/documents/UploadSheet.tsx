@@ -7,8 +7,8 @@ import { inputClass, primaryButton } from '@/features/auth/LoginPage'
 import { api, ApiError, type Page } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { guessMime, uploadFile } from '@/lib/upload'
-import type { DocType, DocumentItem } from './types'
-import { formatSize } from './types'
+import type { DocType, DocumentItem, FolderItem } from './types'
+import { folderTag, formatSize } from './types'
 
 const MAX_BYTES = 100 * 1024 * 1024
 const ACCEPT = '.pdf,.docx,.xlsx,.doc,.xls,.jpg,.jpeg,.png,.zip'
@@ -45,17 +45,23 @@ interface UploadSheetProps {
   docType?: string
   /** Upload a new version of this document instead of a new document. */
   parent?: DocumentItem
+  /** Archive mode (software-delivery project): pick a folder instead of a package. */
+  folders?: FolderItem[]
+  /** The folder preselected in archive mode. */
+  folderCode?: string
   onClose: () => void
 }
 
 const stem = (name: string) => name.replace(/\.[^.]+$/, '')
 const sendable = (r: Row) => !r.invalid && (r.state === 'waiting' || r.state === 'failed')
 
-export function UploadSheet({ packageId: fixedPackage, docType, parent, onClose }: UploadSheetProps) {
+export function UploadSheet({ packageId: fixedPackage, docType, parent, folders, folderCode, onClose }: UploadSheetProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [rows, setRows] = useState<Row[]>([])
   const [packageId, setPackageId] = useState<string>(fixedPackage ?? parent?.package_id ?? '')
+  const [folder, setFolder] = useState<string>(folderCode ?? folders?.[0]?.code ?? '')
+  const folderType = folders?.find((f) => f.code === folder)?.doc_type
   const [running, setRunning] = useState(false)
   const [nextId, setNextId] = useState(1)
 
@@ -63,7 +69,7 @@ export function UploadSheet({ packageId: fixedPackage, docType, parent, onClose 
   const packages = useQuery({
     queryKey: ['packages', 'options'],
     queryFn: () => api.get<Page<{ id: string; number: number; name: string }>>('/packages?page_size=100'),
-    enabled: !fixedPackage && !parent,
+    enabled: !fixedPackage && !parent && !folders,
   })
 
   const patch = (id: number, change: Partial<Row>) =>
@@ -77,7 +83,7 @@ export function UploadSheet({ packageId: fixedPackage, docType, parent, onClose 
         id: nextId + i,
         file,
         title: parent?.title ?? stem(file.name),
-        docType: docType ?? parent?.doc_type ?? (mime.startsWith('image/') ? 'photo' : 'other'),
+        docType: docType ?? parent?.doc_type ?? folderType ?? (mime.startsWith('image/') ? 'photo' : 'other'),
         docNo: '',
         docDate: '',
         state: error ? 'failed' : 'waiting',
@@ -113,6 +119,7 @@ export function UploadSheet({ packageId: fixedPackage, docType, parent, onClose 
           title: row.title.trim() || stem(row.file.name),
           doc_no: row.docNo || null,
           doc_date: row.docDate || null,
+          ...(folders && folder ? { tags: [folderTag(folder)] } : {}),
         })
       }
       patch(row.id, { state: 'done', progress: 1 })
@@ -135,6 +142,7 @@ export function UploadSheet({ packageId: fixedPackage, docType, parent, onClose 
     setRunning(false)
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['documents'] }),
+      queryClient.invalidateQueries({ queryKey: ['document-folders'] }),
       queryClient.invalidateQueries({ queryKey: ['checklist'] }),
     ])
   }
@@ -145,7 +153,21 @@ export function UploadSheet({ packageId: fixedPackage, docType, parent, onClose 
   return (
     <BottomSheet title={parent ? t('documents.uploadNewVersion') : t('documents.upload')} onClose={onClose}>
       <div className="space-y-4">
-        {!fixedPackage && !parent && (
+        {folders && !parent && (
+          <div>
+            <label htmlFor="up-folder" className="mb-1 block text-sm font-medium">
+              {t('documents.folder')}
+            </label>
+            <select id="up-folder" className={inputClass} value={folder} onChange={(e) => setFolder(e.target.value)}>
+              {folders.map((f) => (
+                <option key={f.code} value={f.code}>
+                  {f.group} / {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {!fixedPackage && !parent && !folders && (
           <div>
             <label htmlFor="up-package" className="mb-1 block text-sm font-medium">
               {t('documents.package')}

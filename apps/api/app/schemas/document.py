@@ -147,6 +147,14 @@ class DocTypeOut(BaseModel):
     category: DocCategory
 
 
+class FolderOut(BaseModel):
+    code: str
+    group: str
+    label: str
+    doc_type: str
+    count: int
+
+
 class AccessUser(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

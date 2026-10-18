@@ -49,6 +49,10 @@ class Storage(Protocol):
 
     async def read_bytes(self, key: str, max_bytes: int) -> bytes: ...
 
+    async def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
+        """Server-side write, for imports that have the file already (not the browser's path)."""
+        ...
+
 
 def content_disposition(filename: str, *, inline: bool) -> str:
     """RFC 6266 header that survives Vietnamese file names."""
@@ -174,6 +178,15 @@ class S3Storage:
                     raise ValueError("object larger than allowed")
         return bytes(data)
 
+    async def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
+        await asyncio.to_thread(
+            self._client.put_object,
+            Bucket=self.bucket,
+            Key=key,
+            Body=data,
+            ContentType=content_type,
+        )
+
 
 class MemoryStorage:
     """In-process stand-in used by tests; `put` simulates the browser's direct upload."""
@@ -187,6 +200,9 @@ class MemoryStorage:
 
     async def ensure_bucket(self) -> None:
         return None
+
+    async def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
+        self.objects[key] = data
 
     async def presign_upload(self, key: str, content_type: str, expires_in: int) -> PresignedUpload:
         return PresignedUpload(

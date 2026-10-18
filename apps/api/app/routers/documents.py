@@ -26,6 +26,7 @@ from app.schemas.document import (
     DocumentOut,
     DocumentUpdate,
     DownloadOut,
+    FolderOut,
     UploadTarget,
     UploadUrlRequest,
     UploadUrlResponse,
@@ -33,6 +34,7 @@ from app.schemas.document import (
     VersionOut,
 )
 from app.services import audit
+from app.services.archive_folders import FOLDERS, folder_tag
 from app.services.documents import (
     ALLOWED_MIME,
     DOC_TYPE_CODES,
@@ -117,6 +119,7 @@ async def list_documents(
     category: str | None = None,
     doc_type: str | None = None,
     confidentiality: str | None = None,
+    folder: Annotated[str | None, Query(max_length=50)] = None,
     q: Annotated[str | None, Query(max_length=200)] = None,
     current_only: bool = True,
 ) -> Page[DocumentOut]:
@@ -136,6 +139,8 @@ async def list_documents(
     ):
         if value is not None:
             stmt = stmt.where(column == value)
+    if folder:
+        stmt = stmt.where(Document.tags.contains([folder_tag(folder)]))
 
     query = (q or "").strip()
     if query:
@@ -177,6 +182,39 @@ async def list_documents(
     return Page[DocumentOut](
         items=items, total=total, page=pagination.page, page_size=pagination.page_size
     )
+
+
+@router.get("/document-folders", response_model=list[FolderOut])
+async def list_folders(
+    user: Reader, session: SessionDep, project: ProjectDep
+) -> list[FolderOut]:
+    """The archive folders of a software-delivery project with how many documents each holds."""
+    if project.project_type != "software_delivery":
+        raise AppError(404, "not_found", "Chức năng này không áp dụng cho loại dự án này")
+    access_ids = await accessible_package_ids(session, user)
+    tag = func.unnest(Document.tags).label("tag")
+    tagged = (
+        select(tag)
+        .where(
+            Document.deleted_at.is_(None),
+            Document.is_current.is_(True),
+            Document.project_id == project.id,
+            visible_clause(user, access_ids),
+        )
+        .subquery()
+    )
+    rows = await session.execute(select(tagged.c.tag, func.count()).group_by(tagged.c.tag))
+    counts: dict[str, int] = {tag_name: total for tag_name, total in rows.all()}
+    return [
+        FolderOut(
+            code=f.code,
+            group=f.group,
+            label=f.label,
+            doc_type=f.doc_type,
+            count=counts.get(folder_tag(f.code), 0),
+        )
+        for f in FOLDERS
+    ]
 
 
 @router.get("/documents/{document_id}", response_model=DocumentDetail)
@@ -606,8 +644,14 @@ async def update_document(
 
 @router.delete("/documents/{document_id}", status_code=204)
 async def delete_document(
-    document_id: uuid.UUID, request: Request, user: Writer, session: SessionDep
+    document_id: uuid.UUID,
+    request: Request,
+    user: Writer,
+    session: SessionDep,
+    project: ProjectDep,
 ) -> Response:
+    if project.project_type == "software_delivery":
+        raise AppError(403, "forbidden", "Tài liệu lưu trữ của dự án này không được xóa")
     doc = await _load_visible(session, user, document_id)
     access_ids = await accessible_package_ids(session, user)
     if not can_write(user, doc.confidentiality, doc.package_id, access_ids):

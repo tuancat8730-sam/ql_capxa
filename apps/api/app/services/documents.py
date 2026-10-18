@@ -73,6 +73,13 @@ DOC_TYPES: tuple[DocType, ...] = (
     DocType("report_final", "Báo cáo kết thúc", "execution"),
     DocType("report_adhoc", "Báo cáo đột xuất", "execution"),
     DocType("photo", "Ảnh hiện trường", "execution"),
+    # Software-delivery archive (SGD-HCM): one type per folder of "Tài Liệu Lưu trữ".
+    DocType("schedule_plan", "Kế hoạch, báo cáo tiến độ", "execution"),
+    DocType("admin_procedure", "Thủ tục hành chính (công văn, tờ trình, đề xuất)", "execution"),
+    DocType("business_doc", "Tài liệu nghiệp vụ, biểu mẫu khảo sát", "execution"),
+    DocType("software_doc", "Tài liệu phần mềm", "execution"),
+    DocType("handover_doc", "Hồ sơ nghiệm thu, bàn giao", "acceptance"),
+    DocType("project_doc", "Tài liệu dự án", "other"),
     DocType("other", "Khác", "other"),
 )
 DOC_TYPE_CODES = {d.code: d for d in DOC_TYPES}

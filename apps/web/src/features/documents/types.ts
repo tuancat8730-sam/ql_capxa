@@ -26,6 +26,17 @@ export interface DocType {
   category: DocCategory
 }
 
+/** A folder of the SGD-HCM archive; a document sits in it through the tag `folder:<code>`. */
+export interface FolderItem {
+  code: string
+  group: string
+  label: string
+  doc_type: string
+  count: number
+}
+
+export const folderTag = (code: string) => `folder:${code}`
+
 export interface Download {
   url: string
   expires_in: number

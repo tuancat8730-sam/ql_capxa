@@ -18,6 +18,7 @@ const ProjectsPage = lazy(() => import('./features/admin/ProjectsPage').then((m)
 const UsersPage = lazy(() => import('./features/admin/UsersPage').then((m) => ({ default: m.UsersPage })))
 const ProfilePage = lazy(() => import('./features/auth/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const DocumentsPage = lazy(() => import('./features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
+const ProjectDocumentsPage = lazy(() => import('./features/documents/ProjectDocumentsPage').then((m) => ({ default: m.ProjectDocumentsPage })))
 const GuaranteesPage = lazy(() => import('./features/finance/GuaranteesPage').then((m) => ({ default: m.GuaranteesPage })))
 const PaymentsPage = lazy(() => import('./features/finance/PaymentsPage').then((m) => ({ default: m.PaymentsPage })))
 const PackageDetailPage = lazy(() => import('./features/packages/PackageDetailPage').then((m) => ({ default: m.PackageDetailPage })))
@@ -54,7 +55,7 @@ function PlaceholderPage({ titleKey }: { titleKey: string }) {
   )
 }
 
-const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests', '/outgoing-docs', '/admin/audit', '/admin/settings', '/admin/projects', '/schedule', '/weekly-reports', '/construction-log', '/decisions'])
+const implemented = new Set(['/', '/alerts', '/admin/users', '/profile', '/packages', '/contracts', '/payments', '/documents', '/progress', '/daily-log', '/risks', '/issues', '/meetings', '/change-requests', '/outgoing-docs', '/admin/audit', '/admin/settings', '/admin/projects', '/schedule', '/weekly-reports', '/construction-log', '/project-documents', '/decisions'])
 
 export default function App() {
   const { t } = useTranslation()
@@ -89,6 +90,7 @@ export default function App() {
           <Route path="/contracts" element={<GuaranteesPage />} />
           <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/project-documents" element={<ProjectDocumentsPage />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/daily-log" element={<DailyLogPage />} />
           <Route path="/risks" element={<ByProjectType procurement={<RisksPage />} software={<DeliveryRisksPage />} />} />

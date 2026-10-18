@@ -22,6 +22,7 @@ SOFTWARE_DELIVERY_MODULES = (
     "schedule",
     "weekly_reports",
     "construction_log",
+    "project_documents",
     "risks",
     "decisions",
     "alerts",
