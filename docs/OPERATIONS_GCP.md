@@ -115,6 +115,7 @@ Dựng ngày 07/10/2026 bằng tài khoản quản trị của chủ dự án; b
 - Kiểm thử đầu cuối qua địa chỉ Firebase đã đạt: đăng nhập (cookie `__session`), làm mới phiên, xin URL ký, CORS preflight từ web, tải 5 MB lên GCS bằng URL ký, xác nhận (sha256 phía server khớp), tải xuống đúng từng byte, xóa.
 - Ba lỗi gặp khi dựng thật (đã sửa trong mã): người dùng cần `user_project_override` và `billing_project` cho provider Firebase; token mặc định của Cloud Run thiếu scope cho `signBlob` (nay yêu cầu `cloud-platform`); khi truyền script qua `gcloud run jobs update --args`, dấu phân cách mặc định là dấu phẩy nên cần `^|^` cho đối số có dấu phẩy.
 - Tài khoản `admin@qlda.local`: mật khẩu tạm do job `seed` tạo; đổi ngay khi đăng nhập lần đầu.
+- **Tắt hẳn dev để không tính tiền:** `scripts/teardown-dev.sh` sao lưu CSDL và tài liệu về `~/backups/qlda-dev`, rồi `terraform destroy` toàn bộ (giữ lại bucket trạng thái Terraform và project; thêm `UNLINK_BILLING=1` để gỡ cả billing). Dựng lại theo mục 2 rồi nạp lại dữ liệu từ bản sao lưu. Tên instance Cloud SQL bị giữ một thời gian sau khi xóa nên lần apply ngay sau đó có thể lỗi trùng tên.
 
 ## 8. Giới hạn đã biết
 
@@ -136,6 +137,7 @@ Gửi qua cổng 587 hoặc 465 (GCP chặn cổng 25).
 ## Nhiều dự án (từ migration 0010)
 - Migration `0010` chuyển người dùng hiện có thành thành viên của dự án cấp xã (vai trò = vai trò tài khoản) và gắn mọi dữ liệu cũ vào dự án đó; `0011` thêm bảng của dự án phần mềm. Cả hai chạy trong job `migrate` như thường lệ và có `downgrade`.
 - Dự án **SGD-HCM** được tạo bởi job `seed` (`gcloud run jobs execute seed ... --wait`; chạy lại an toàn, không đụng dữ liệu đã nhập). Lúc đầu chỉ admin hệ thống thấy dự án; thêm người ở **Quản trị → Dự án → Thành viên**.
+- **Tài liệu lưu trữ SGD-HCM** (menu "Tài liệu lưu trữ"): nạp loạt bằng `python -m app.seed.sgd_hcm_documents "<thư mục Tài Liệu Lưu trữ>"` từ `apps/api`, với `DATABASE_URL` trỏ tới CSDL cần nạp, `STORAGE_BACKEND`/`GCS_BUCKET` trỏ tới bucket tương ứng và `SEED_ADMIN_EMAIL` là tài khoản đã có. Thư mục nguồn không nằm trong ảnh Docker nên job `seed` không làm được việc này; trên dev cần chạy từ máy có tệp (qua Cloud SQL Auth Proxy). Chạy lại an toàn: tệp trùng nội dung bị bỏ qua. Chưa chạy trên dev. Dự án này không cho xóa tài liệu (API trả 403).
 - Người dùng mới do admin tạo được thêm vào dự án admin đang chọn. Gỡ ai khỏi dự án trong ứng dụng sẽ không bị `seed` hoàn lại.
 - API trả `Vary: X-Project-Id`, nên bộ nhớ đệm của PWA không lẫn dữ liệu giữa các dự án.
 

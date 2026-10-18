@@ -1,0 +1,85 @@
+# Production stack for a single small VPS (1 vCPU, 1 GB RAM + swap), reached by IP over plain HTTP.
+# Only Caddy publishes a port; the database and Garage are reachable inside the compose network.
+# Run from scripts/deploy-vps.sh. Configuration comes from ./.env (see .env.example).
+
+x-api: &api
+  image: qlda-api:${IMAGE_TAG:-latest}
+  env_file: .env
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: qlda
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: qlda
+    # small-memory tuning: the app holds at most ~10 connections
+    command: >
+      postgres -c shared_buffers=128MB -c effective_cache_size=384MB -c work_mem=4MB
+      -c maintenance_work_mem=48MB -c max_connections=30
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qlda"]
+      interval: 5s
+      retries: 10
+    mem_limit: 400m
+
+  garage:
+    image: dxflrs/garage:v2.4.1
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set in .env}
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    mem_limit: 256m
+
+  api:
+    <<: *api
+    depends_on:
+      db: { condition: service_healthy }
+    mem_limit: 400m
+
+  worker:
+    <<: *api
+    command: python -m app.worker
+    depends_on:
+      db: { condition: service_healthy }
+    mem_limit: 300m
+
+  caddy:
+    image: caddy:2.11
+    restart: unless-stopped
+    ports: ["80:80"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web:/srv/web:ro
+      - caddy-data:/data
+    depends_on: [api, garage]
+    mem_limit: 96m
+
+  # one-off jobs: docker compose run --rm migrate
+  migrate:
+    <<: *api
+    profiles: [tools]
+    restart: "no"
+    command: alembic upgrade head
+    depends_on:
+      db: { condition: service_healthy }
+
+  seed:
+    <<: *api
+    profiles: [tools]
+    restart: "no"
+    command: python -m app.seed.run
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  garage-meta:
+  garage-data:
+  caddy-data:
