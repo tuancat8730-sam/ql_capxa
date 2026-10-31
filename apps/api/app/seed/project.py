@@ -354,6 +354,21 @@ async def ensure_members(session: AsyncSession, project: Project) -> int:
     return added
 
 
+async def ensure_project(session: AsyncSession) -> Project:
+    """Only the project row and its members. Packages, contracts and their data come from the
+    tracking workbook (`app.services.tracking_sync`), so this seed never writes them."""
+    project = await capxa_project(session)
+    if project is not None:
+        await ensure_members(session, project)
+        return project
+    investor = await _org(session, INVESTOR, "investor")
+    project = Project(investor_org_id=investor.id, **PROJECT)
+    session.add(project)
+    await session.flush()
+    await ensure_members(session, project)
+    return project
+
+
 async def seed_project(session: AsyncSession) -> Project:
     investor = await _org(session, INVESTOR, "investor")
     orgs = {name: await _org(session, name, kind) for name, kind in CONTRACTORS.items()}

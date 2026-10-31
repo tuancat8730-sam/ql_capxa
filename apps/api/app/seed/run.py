@@ -5,11 +5,7 @@ import os
 
 from app.core.db import get_engine, get_sessionmaker
 from app.seed.checklists import seed_checklists
-from app.seed.finance import seed_finance
-from app.seed.package_logs import seed_package_logs
-from app.seed.progress import seed_progress
-from app.seed.project import seed_project
-from app.seed.risks import seed_risks
+from app.seed.project import ensure_project
 from app.seed.sgd_hcm import seed_sgd_hcm
 from app.seed.users import ensure_admin
 
@@ -24,14 +20,13 @@ async def main() -> None:
     else:
         print(f"Admin {result.email} already exists; left unchanged")
     async with get_sessionmaker()() as session:
-        await seed_project(session)
-        await seed_finance(session)
+        await ensure_project(session)
         await seed_checklists(session)
-        await seed_progress(session)
-        await seed_package_logs(session)
-        await seed_risks(session)
         await seed_sgd_hcm(session)
-    print("Seeded both projects: packages, contracts, finance, stages, risks and the SGD-HCM plan")
+    print(
+        "Seeded: admin, Lam Dong project row (packages come from `app.services.tracking_sync`), "
+        "checklists and the SGD-HCM project"
+    )
     await get_engine().dispose()
 
 

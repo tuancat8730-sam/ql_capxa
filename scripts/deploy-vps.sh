@@ -25,7 +25,7 @@ step() { printf '\n==> %s\n' "$*"; }
 rnd() { openssl rand -hex "$1"; }
 
 step "Build the API image ($TAG)"
-docker build -t "qlda-api:$TAG" "$ROOT/apps/api"
+docker build --platform linux/amd64 -t "qlda-api:$TAG" "$ROOT/apps/api"
 
 if [ -z "${SKIP_WEB:-}" ]; then
   step "Build the web app"

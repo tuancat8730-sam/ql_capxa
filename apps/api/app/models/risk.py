@@ -23,7 +23,7 @@ from app.models.base import Base, IdMixin, TimestampMixin, enum_check
 
 RISK_CATEGORIES = ("schedule", "cost", "quality", "legal", "contract", "supply", "safety", "other")
 RISK_STATUSES = ("open", "mitigating", "occurred", "closed")
-RISK_SOURCES = ("de_cuong", "analysis", "manual")
+RISK_SOURCES = ("de_cuong", "analysis", "manual", "workbook")
 ISSUE_TYPES = ("operational", "contract", "schedule", "investor_request", "other")
 ISSUE_STATUSES = ("open", "in_progress", "escalated", "resolved", "closed")
 ISSUE_EVENTS = (

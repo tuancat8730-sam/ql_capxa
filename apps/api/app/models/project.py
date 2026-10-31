@@ -103,7 +103,7 @@ class Package(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "packages"
     __table_args__ = (
         UniqueConstraint("project_id", "number", name="project_number"),
-        CheckConstraint("number BETWEEN 1 AND 99", name="number_range"),
+        CheckConstraint("number BETWEEN 1 AND 999", name="number_range"),
         enum_check("package_type", PACKAGE_TYPES),
         enum_check("selection_form", SELECTION_FORMS),
         enum_check("selection_method", SELECTION_METHODS),
