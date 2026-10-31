@@ -154,3 +154,12 @@ Kế hoạch: `/ecc:plan` ngày 18/10/2026; dùng lại bảng `documents` (SPEC
 - [x] Web: `/project-documents` (cây thư mục theo nhóm kèm số tệp, tìm kiếm, xem, tải về, tải lên chọn thư mục; không có nút xóa hay phiên bản mới); `UploadSheet` nhận `folders`.
 - Kiểm tra 18/10/2026: api 1178 test đạt, 1 skip (8 mới); web 289 (6 mới), `ruff`, `mypy`, `tsc`, build sạch. Chạy thật trên DB và S3 giả cục bộ với 16 tệp trong `Tài Liệu Lưu trữ`: 16 tệp vào đúng thư mục (chung 1, nhà thầu 1–5: 1/3/6/3/2, giám sát 0), mọi tệp trích được text, chạy lần hai bỏ qua cả 16; API: tải xuống ký sẵn, tìm kiếm, xóa bị 403.
 - Chưa làm: nạp lên môi trường dev (cần chạy script từ máy có tệp, xem `OPERATIONS_GCP.md`); kiểm tra giao diện bằng trình duyệt thật (Chromium không chạy được ở máy này, mới có test vitest); chặn trùng nội dung khi tải lên từ giao diện ở cấp dự án (unique index chỉ theo gói).
+
+### Đồng bộ workbook theo dõi gói thầu (Lâm Đồng)
+Nguồn: `docs/Tracking_Cac_Goi_Thau_DA_Cap_Xa_Lam_Dong.xlsx` (workbook là nguồn chính). Plan và kết quả từng pha: `.claude/plans/tracking-cac-goi-thau.plan.md`.
+- [x] Đọc workbook (`tracking_workbook`, `tracking_details`) và ánh xạ chữ sang enum (`tracking_mapping`); gói CBĐT lưu số 101–103.
+- [x] Đồng bộ (`python -m app.services.tracking_sync --file <xlsx> [--apply]`): gói, hợp đồng, mốc tiến độ (`tasks.source_key`), vướng mắc (`risks`, nguồn `workbook`); ghi `audit_log` mỗi lần ghi; chạy lại không đổi gì.
+- [x] Migration `0018` (up/down/up đã kiểm tra).
+- [x] Kiểm tra: 39 test tracking; bộ test đầy đủ 1216 passed, 2 skipped; ruff và mypy sạch trên code mới.
+- Chưa làm: bảo lãnh và E-HSDT (cần bản scan); lịch tự động thứ Sáu; báo cáo tuần và cảnh báo 7/30 ngày; gỡ seed cũ `seed_project` khỏi `make seed` (chạy lại sau đồng bộ sẽ ghi đè gói 03); 10 rủi ro seed R-001–R-010 trùng với rủi ro workbook.
+- [x] Seed Lâm Đồng: chỉ còn dòng dự án; rủi ro seed R-001–R-010 đóng bằng migration 0019; script hằng tuần `scripts/tracking_sync_weekly.sh`.
