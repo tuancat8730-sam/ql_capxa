@@ -61,6 +61,13 @@ class Task(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
         enum_check("status", TASK_STATUSES),
         enum_check("priority", TASK_PRIORITIES),
         Index("ix_tasks_package", "package_id"),
+        Index(
+            "ix_tasks_package_source_key",
+            "package_id",
+            "source_key",
+            unique=True,
+            postgresql_where=text("source_key IS NOT NULL"),
+        ),
     )
 
     package_id: Mapped[uuid.UUID] = mapped_column(
@@ -80,6 +87,8 @@ class Task(IdMixin, TimestampMixin, SoftDeleteMixin, Base):
     priority: Mapped[str] = mapped_column(String(20), default="normal", nullable=False)
     weight: Mapped[Decimal] = mapped_column(_PCT, default=1, nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Milestone key in the tracking workbook; NULL for tasks typed in the app.
+    source_key: Mapped[str | None] = mapped_column(String(40), nullable=True)
     depends_on: Mapped[list[uuid.UUID]] = mapped_column(
         ARRAY(UUID(as_uuid=True)), default=list, server_default="{}", nullable=False
     )
